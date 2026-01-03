@@ -20,7 +20,6 @@ export function Dashboard() {
   const animationSpeed = useAppStore((state) => state.animationSpeed)
   const setAnimationSpeed = useAppStore((state) => state.setAnimationSpeed)
   const isLoading = useAppStore((state) => state.isLoading)
-  const setIsLoading = useAppStore((state) => state.setIsLoading)
   const graph = useAppStore((state) => state.graph)
   const startNode = useAppStore((state) => state.startNode)
   const setStartNode = useAppStore((state) => state.setStartNode)
