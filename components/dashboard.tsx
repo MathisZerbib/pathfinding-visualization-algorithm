@@ -1,7 +1,7 @@
 "use client"
 
 import { useAppStore, type Algorithm } from "@/lib/store"
-import { MapPin, Download, Zap, Play, ChevronDown, ChevronUp } from "lucide-react"
+import { MapPin, Zap, Play, ChevronDown, ChevronUp } from "lucide-react"
 import { runPathfinding } from "@/lib/pathfinding"
 
 const algorithms: { id: Algorithm; name: string; desc: string }[] = [
@@ -12,27 +12,25 @@ const algorithms: { id: Algorithm; name: string; desc: string }[] = [
 ]
 
 export function Dashboard() {
-  const {
-    algorithm,
-    setAlgorithm,
-    pickingMode,
-    setPickingMode,
-    animationSpeed,
-    setAnimationSpeed,
-    isLoading,
-    setIsLoading,
-    graph,
-    startNode,
-    endNode,
-    error,
-    setError,
-    isRunning,
-    setIsRunning,
-    setAnimationState,
-    setStats,
-    isDashboardVisible,
-    setIsDashboardVisible,
-  } = useAppStore()
+  const algorithm = useAppStore((state) => state.algorithm)
+  const setAlgorithm = useAppStore((state) => state.setAlgorithm)
+  const pickingMode = useAppStore((state) => state.pickingMode)
+  const setPickingMode = useAppStore((state) => state.setPickingMode)
+  const animationSpeed = useAppStore((state) => state.animationSpeed)
+  const setAnimationSpeed = useAppStore((state) => state.setAnimationSpeed)
+  const isLoading = useAppStore((state) => state.isLoading)
+  const setIsLoading = useAppStore((state) => state.setIsLoading)
+  const graph = useAppStore((state) => state.graph)
+  const startNode = useAppStore((state) => state.startNode)
+  const endNode = useAppStore((state) => state.endNode)
+  const error = useAppStore((state) => state.error)
+  const setError = useAppStore((state) => state.setError)
+  const isRunning = useAppStore((state) => state.isRunning)
+  const setIsRunning = useAppStore((state) => state.setIsRunning)
+  const setAnimationState = useAppStore((state) => state.setAnimationState)
+  const setStats = useAppStore((state) => state.setStats)
+  const isDashboardVisible = useAppStore((state) => state.isDashboardVisible)
+  const setIsDashboardVisible = useAppStore((state) => state.setIsDashboardVisible)
 
   const handlePickStart = () => {
     const newMode = pickingMode === "start" ? null : "start"
@@ -49,8 +47,9 @@ export function Dashboard() {
   const handleStartAnimation = async () => {
     if (!graph || !startNode || !endNode || isRunning) return
 
+    console.log("[v0] Starting animation...")
     setIsRunning(true)
-    setAnimationState({ visited: new Set(), frontier: new Set(), path: [] })
+    setAnimationState({ visited: new Set(), frontier: new Set(), path: [], exploredEdges: [] })
 
     await runPathfinding(
       graph,
@@ -58,10 +57,14 @@ export function Dashboard() {
       endNode,
       algorithm,
       animationSpeed,
-      (state) => setAnimationState(state),
+      (state) => {
+        // console.log("[v0] Animation update", state.exploredEdges.length)
+        setAnimationState(state)
+      },
       (stats) => setStats(stats),
     )
 
+    console.log("[v0] Animation finished")
     setIsRunning(false)
   }
 
@@ -207,24 +210,7 @@ export function Dashboard() {
               />
             </div>
 
-            {/* Fetch Button */}
-            <button
-              onClick={() => setIsLoading(true)}
-              disabled={isLoading || isRunning}
-              className="w-full py-3 px-4 rounded-xl text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 transition-all shadow-lg shadow-blue-500/25"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Fetching Data...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Fetch Map Data
-                </>
-              )}
-            </button>
+            {/* Map data is auto-fetched on load */}
 
             {/* Graph Status */}
             {graph && (

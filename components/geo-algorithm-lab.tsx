@@ -5,6 +5,7 @@ import { useAppStore } from "@/lib/store"
 import { Dashboard } from "@/components/dashboard"
 import { StatsOverlay } from "@/components/stats-overlay"
 import { fetchOSMData, buildGraph } from "@/lib/osm-fetcher"
+import { runPathfinding } from "@/lib/pathfinding"
 import L from "leaflet"
 
 declare global {
@@ -14,31 +15,31 @@ declare global {
 }
 
 export default function GeoAlgorithmLab() {
+  const animationRef = useRef<number | null>(null)
   const mapRef = useRef<L.Map | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const animationRef = useRef<number | null>(null)
   const [mapReady, setMapReady] = useState(false)
   const [leafletLoaded, setLeafletLoaded] = useState(false)
 
-  const {
-    graph,
-    setGraph,
-    startNode,
-    endNode,
-    setStartNode,
-    setEndNode,
-    pickingMode,
-    setPickingMode,
-    animationState,
-    setAnimationState,
-    algorithm,
-    animationSpeed,
-    setStats,
-    isLoading,
-    setIsLoading,
-    setError,
-  } = useAppStore()
+  // Use selectors to avoid unnecessary re-renders
+  const graph = useAppStore((state) => state.graph)
+  const setGraph = useAppStore((state) => state.setGraph)
+  const setStartNode = useAppStore((state) => state.setStartNode)
+  const setEndNode = useAppStore((state) => state.setEndNode)
+  const setPickingMode = useAppStore((state) => state.setPickingMode)
+  const setAnimationState = useAppStore((state) => state.setAnimationState)
+  const setStats = useAppStore((state) => state.setStats)
+  const isLoading = useAppStore((state) => state.isLoading)
+  const setIsLoading = useAppStore((state) => state.setIsLoading)
+  const setError = useAppStore((state) => state.setError)
+  
+  // These are needed for effects but we can get them from store directly or use refs if we want to avoid re-renders
+  // But for now, let's just subscribe to them as they don't change often during animation (except start/end/graph)
+  const startNode = useAppStore((state) => state.startNode)
+  const endNode = useAppStore((state) => state.endNode)
+  const algorithm = useAppStore((state) => state.algorithm)
+  const animationSpeed = useAppStore((state) => state.animationSpeed)
 
   useEffect(() => {
     const checkLeaflet = () => {
@@ -60,7 +61,6 @@ export default function GeoAlgorithmLab() {
       zoom: 15,
       zoomControl: false,
       preferCanvas: true,
-      tap: true,
       tapTolerance: 20,
     })
 
@@ -201,48 +201,29 @@ export default function GeoAlgorithmLab() {
       return { x: point.x, y: point.y }
     }
 
-    // Draw all edges (very faint)
-    ctx.strokeStyle = "rgba(59, 130, 246, 0.1)"
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    for (const [nodeId, edges] of currentGraph.adjacency) {
-      const fromNode = currentGraph.nodes.get(nodeId)
-      if (!fromNode) continue
-      const from = latLngToPoint(fromNode.lat, fromNode.lng)
+    // Draw explored edges as bright blue pathfinder lines
+    if (currentAnimationState.exploredEdges.length > 0) {
+      // console.log("Drawing explored edges:", currentAnimationState.exploredEdges.length)
+      ctx.shadowColor = "#3b82f6"
+      ctx.shadowBlur = 12
+      ctx.strokeStyle = "rgba(59, 130, 246, 0.9)"
+      ctx.lineWidth = 3
+      ctx.lineCap = "round"
+      ctx.lineJoin = "round"
+      ctx.beginPath()
 
-      for (const edge of edges) {
-        const toNode = currentGraph.nodes.get(edge.to)
-        if (!toNode) continue
+      for (const [fromId, toId] of currentAnimationState.exploredEdges) {
+        const fromNode = currentGraph.nodes.get(fromId)
+        const toNode = currentGraph.nodes.get(toId)
+        if (!fromNode || !toNode) continue
+        const from = latLngToPoint(fromNode.lat, fromNode.lng)
         const to = latLngToPoint(toNode.lat, toNode.lng)
         ctx.moveTo(from.x, from.y)
         ctx.lineTo(to.x, to.y)
       }
-    }
-    ctx.stroke()
 
-    // Draw visited edges
-    if (currentAnimationState.visited.size > 0) {
-      ctx.strokeStyle = "rgba(59, 130, 246, 0.4)"
-      ctx.lineWidth = 2
-      ctx.beginPath()
-
-      for (const nodeId of currentAnimationState.visited) {
-        const fromNode = currentGraph.nodes.get(nodeId)
-        if (!fromNode) continue
-        const from = latLngToPoint(fromNode.lat, fromNode.lng)
-
-        const edges = currentGraph.adjacency.get(nodeId) || []
-        for (const edge of edges) {
-          if (currentAnimationState.visited.has(edge.to)) {
-            const toNode = currentGraph.nodes.get(edge.to)
-            if (!toNode) continue
-            const to = latLngToPoint(toNode.lat, toNode.lng)
-            ctx.moveTo(from.x, from.y)
-            ctx.lineTo(to.x, to.y)
-          }
-        }
-      }
       ctx.stroke()
+      ctx.shadowBlur = 0
     }
 
     // Draw frontier with glow
@@ -264,11 +245,11 @@ export default function GeoAlgorithmLab() {
       ctx.shadowBlur = 0
     }
 
-    // Draw final path with neon glow
+    // Draw final path with neon green glow
     if (currentAnimationState.path.length > 1) {
-      ctx.shadowColor = "#00ffd5"
+      ctx.shadowColor = "#22c55e"
       ctx.shadowBlur = 20
-      ctx.strokeStyle = "#00ffd5"
+      ctx.strokeStyle = "#22c55e"
       ctx.lineWidth = 4
       ctx.lineCap = "round"
       ctx.lineJoin = "round"
@@ -339,6 +320,12 @@ export default function GeoAlgorithmLab() {
     }
   }, [mapReady, drawFrame])
 
+  // Auto-fetch map data once the map is ready
+  useEffect(() => {
+    if (!mapReady || isLoading || graph) return
+    setIsLoading(true)
+  }, [mapReady, isLoading, graph, setIsLoading])
+
   // Fetch data handler
   useEffect(() => {
     if (!isLoading || !mapRef.current) return
@@ -370,23 +357,6 @@ export default function GeoAlgorithmLab() {
 
     handleFetch()
   }, [isLoading, setGraph, setStats, setIsLoading, setError])
-
-  // Run pathfinding when start/end change
-  // useEffect(() => {
-  //   if (!graph || !startNode || !endNode) return
-  //
-  //   setAnimationState({ visited: new Set(), frontier: new Set(), path: [] })
-  //
-  //   runPathfinding(
-  //     graph,
-  //     startNode,
-  //     endNode,
-  //     algorithm,
-  //     animationSpeed,
-  //     (state) => setAnimationState(state),
-  //     (stats) => setStats(stats),
-  //   )
-  // }, [graph, startNode, endNode, algorithm, animationSpeed, setAnimationState, setStats])
 
   if (!leafletLoaded) {
     return (

@@ -7,6 +7,7 @@ interface AnimationState {
   visited: Set<string>
   frontier: Set<string>
   path: string[]
+  exploredEdges: Array<[string, string]>
 }
 
 interface Stats {
@@ -72,7 +73,7 @@ export const useAppStore = create<AppState>((set) => ({
   animationSpeed: 50,
   setAnimationSpeed: (speed) => set({ animationSpeed: speed }),
 
-  animationState: { visited: new Set(), frontier: new Set(), path: [] },
+  animationState: { visited: new Set(), frontier: new Set(), path: [], exploredEdges: [] },
   setAnimationState: (state) => set({ animationState: state }),
 
   stats: { nodesInGraph: 0, nodesExplored: 0, pathLength: 0 },

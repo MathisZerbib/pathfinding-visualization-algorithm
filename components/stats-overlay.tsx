@@ -10,10 +10,11 @@ const algorithmLabels: Record<string, string> = {
 }
 
 export function StatsOverlay() {
-  const { algorithm, stats } = useAppStore()
+  const algorithm = useAppStore((state) => state.algorithm)
+  const stats = useAppStore((state) => state.stats)
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-1000">
       <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl px-6 py-3 flex items-center gap-8 shadow-2xl shadow-black/50">
         {/* Algorithm Name */}
         <div>

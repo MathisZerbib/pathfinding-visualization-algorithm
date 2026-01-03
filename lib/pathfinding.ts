@@ -5,6 +5,7 @@ interface AnimationState {
   visited: Set<string>
   frontier: Set<string>
   path: string[]
+  exploredEdges: Array<[string, string]>
 }
 
 interface Stats {
@@ -114,11 +115,14 @@ async function dijkstra(
   speed: number,
   onUpdate: (state: AnimationState) => void,
   onStats: (stats: Stats) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
+  console.log("[v0] Dijkstra started", { start, end, speed, nodes: graph.nodes.size })
   const dist = new Map<string, number>()
   const cameFrom = new Map<string, string>()
   const visited = new Set<string>()
   const frontier = new MinHeap<string>()
+  const exploredEdges: Array<[string, string]> = []
 
   dist.set(start, 0)
   frontier.push(start, 0)
@@ -127,6 +131,11 @@ async function dijkstra(
   let explored = 0
 
   while (!frontier.isEmpty()) {
+    if (signal?.aborted) {
+      console.log("[v0] Dijkstra aborted")
+      return
+    }
+
     const current = frontier.pop()!
     frontierSet.delete(current)
 
@@ -134,32 +143,65 @@ async function dijkstra(
     visited.add(current)
     explored++
 
-    onUpdate({ visited: new Set(visited), frontier: new Set(frontierSet), path: [] })
-    onStats({ nodesExplored: explored, pathLength: 0 })
-
     if (current === end) {
+      console.log("[v0] Dijkstra found path")
       const path = reconstructPath(cameFrom, end)
       const pathLength = calculatePathLength(graph, path)
-      onUpdate({ visited: new Set(visited), frontier: new Set(), path })
+      onUpdate({ visited: new Set(visited), frontier: new Set(), path, exploredEdges: [...exploredEdges] })
       onStats({ nodesExplored: explored, pathLength })
       return
     }
 
-    await sleep(Math.max(1, 100 - speed))
-
     const edges = graph.adjacency.get(current) || []
+    
+    if (current === start) {
+      console.log(`[v0] Start node ${start} has ${edges.length} edges`)
+      if (edges.length === 0) {
+        console.warn(`[v0] Start node ${start} is isolated!`)
+      }
+    }
+
     for (const edge of edges) {
       if (visited.has(edge.to)) continue
 
-      const newDist = (dist.get(current) || Number.POSITIVE_INFINITY) + edge.weight
-      if (newDist < (dist.get(edge.to) || Number.POSITIVE_INFINITY)) {
+      const newDist = (dist.get(current) ?? Number.POSITIVE_INFINITY) + edge.weight
+      const currentNeighborDist = dist.get(edge.to) ?? Number.POSITIVE_INFINITY
+      
+      if (current === start) {
+         console.log(`[v0] Checking neighbor ${edge.to}, weight: ${edge.weight}, newDist: ${newDist}, currentDist: ${currentNeighborDist}`)
+      }
+
+      if (newDist < currentNeighborDist) {
         dist.set(edge.to, newDist)
         cameFrom.set(edge.to, current)
         frontier.push(edge.to, newDist)
         frontierSet.add(edge.to)
+
+        exploredEdges.push([current, edge.to])
+        if (current === start) console.log(`[v0] Added ${edge.to} to frontier`)
       }
     }
+
+    if (explored % 5 === 0) {
+      onUpdate({
+        visited: new Set(visited),
+        frontier: new Set(frontierSet),
+        path: [],
+        exploredEdges: [...exploredEdges],
+      })
+      onStats({ nodesExplored: explored, pathLength: 0 })
+      await sleep(Math.max(1, 100 - speed))
+    }
   }
+  
+  console.log(`[v0] Dijkstra finished. Explored ${explored} nodes.`)
+  onUpdate({
+    visited: new Set(visited),
+    frontier: new Set(frontierSet),
+    path: [],
+    exploredEdges: [...exploredEdges],
+  })
+  onStats({ nodesExplored: explored, pathLength: 0 })
 }
 
 async function astar(
@@ -169,12 +211,15 @@ async function astar(
   speed: number,
   onUpdate: (state: AnimationState) => void,
   onStats: (stats: Stats) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
+  console.log("[v0] A* started", { start, end, speed })
   const gScore = new Map<string, number>()
   const fScore = new Map<string, number>()
   const cameFrom = new Map<string, string>()
   const visited = new Set<string>()
   const frontier = new MinHeap<string>()
+  const exploredEdges: Array<[string, string]> = []
 
   gScore.set(start, 0)
   fScore.set(start, heuristic(graph, start, end))
@@ -184,6 +229,8 @@ async function astar(
   let explored = 0
 
   while (!frontier.isEmpty()) {
+    if (signal?.aborted) return
+
     const current = frontier.pop()!
     frontierSet.delete(current)
 
@@ -191,31 +238,39 @@ async function astar(
     visited.add(current)
     explored++
 
-    onUpdate({ visited: new Set(visited), frontier: new Set(frontierSet), path: [] })
-    onStats({ nodesExplored: explored, pathLength: 0 })
-
     if (current === end) {
       const path = reconstructPath(cameFrom, end)
       const pathLength = calculatePathLength(graph, path)
-      onUpdate({ visited: new Set(visited), frontier: new Set(), path })
+      onUpdate({ visited: new Set(visited), frontier: new Set(), path, exploredEdges: [...exploredEdges] })
       onStats({ nodesExplored: explored, pathLength })
       return
     }
-
-    await sleep(Math.max(1, 100 - speed))
 
     const edges = graph.adjacency.get(current) || []
     for (const edge of edges) {
       if (visited.has(edge.to)) continue
 
-      const tentativeG = (gScore.get(current) || Number.POSITIVE_INFINITY) + edge.weight
-      if (tentativeG < (gScore.get(edge.to) || Number.POSITIVE_INFINITY)) {
+      const tentativeG = (gScore.get(current) ?? Number.POSITIVE_INFINITY) + edge.weight
+      if (tentativeG < (gScore.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
         cameFrom.set(edge.to, current)
         gScore.set(edge.to, tentativeG)
         fScore.set(edge.to, tentativeG + heuristic(graph, edge.to, end))
         frontier.push(edge.to, fScore.get(edge.to)!)
         frontierSet.add(edge.to)
+
+        exploredEdges.push([current, edge.to])
       }
+    }
+
+    if (explored % 10 === 0) {
+      onUpdate({
+        visited: new Set(visited),
+        frontier: new Set(frontierSet),
+        path: [],
+        exploredEdges: [...exploredEdges],
+      })
+      onStats({ nodesExplored: explored, pathLength: 0 })
+      await sleep(Math.max(1, 100 - speed))
     }
   }
 }
@@ -227,6 +282,7 @@ async function bidirectional(
   speed: number,
   onUpdate: (state: AnimationState) => void,
   onStats: (stats: Stats) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const distF = new Map<string, number>()
   const distB = new Map<string, number>()
@@ -236,6 +292,7 @@ async function bidirectional(
   const visitedB = new Set<string>()
   const frontierF = new MinHeap<string>()
   const frontierB = new MinHeap<string>()
+  const exploredEdges: Array<[string, string]> = []
 
   distF.set(start, 0)
   distB.set(end, 0)
@@ -249,6 +306,8 @@ async function bidirectional(
   let bestDist = Number.POSITIVE_INFINITY
 
   while (!frontierF.isEmpty() && !frontierB.isEmpty()) {
+    if (signal?.aborted) return
+
     // Forward step
     const currentF = frontierF.pop()!
     frontierSetF.delete(currentF)
@@ -268,12 +327,14 @@ async function bidirectional(
       const edges = graph.adjacency.get(currentF) || []
       for (const edge of edges) {
         if (!visitedF.has(edge.to)) {
-          const newDist = (distF.get(currentF) || Number.POSITIVE_INFINITY) + edge.weight
-          if (newDist < (distF.get(edge.to) || Number.POSITIVE_INFINITY)) {
+          const newDist = (distF.get(currentF) ?? Number.POSITIVE_INFINITY) + edge.weight
+          if (newDist < (distF.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
             distF.set(edge.to, newDist)
             cameFromF.set(edge.to, currentF)
             frontierF.push(edge.to, newDist)
             frontierSetF.add(edge.to)
+
+            exploredEdges.push([currentF, edge.to])
           }
         }
       }
@@ -298,12 +359,14 @@ async function bidirectional(
       const edges = graph.adjacency.get(currentB) || []
       for (const edge of edges) {
         if (!visitedB.has(edge.to)) {
-          const newDist = (distB.get(currentB) || Number.POSITIVE_INFINITY) + edge.weight
-          if (newDist < (distB.get(edge.to) || Number.POSITIVE_INFINITY)) {
+          const newDist = (distB.get(currentB) ?? Number.POSITIVE_INFINITY) + edge.weight
+          if (newDist < (distB.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
             distB.set(edge.to, newDist)
             cameFromB.set(edge.to, currentB)
             frontierB.push(edge.to, newDist)
             frontierSetB.add(edge.to)
+
+            exploredEdges.push([currentB, edge.to])
           }
         }
       }
@@ -311,7 +374,7 @@ async function bidirectional(
 
     const allVisited = new Set([...visitedF, ...visitedB])
     const allFrontier = new Set([...frontierSetF, ...frontierSetB])
-    onUpdate({ visited: allVisited, frontier: allFrontier, path: [] })
+    onUpdate({ visited: allVisited, frontier: allFrontier, path: [], exploredEdges: [...exploredEdges] })
     onStats({ nodesExplored: explored, pathLength: 0 })
 
     await sleep(Math.max(1, 100 - speed))
@@ -337,6 +400,7 @@ async function bidirectional(
       visited: new Set([...visitedF, ...visitedB]),
       frontier: new Set(),
       path: fullPath,
+      exploredEdges: [...exploredEdges],
     })
     onStats({ nodesExplored: explored, pathLength })
   }
@@ -349,12 +413,14 @@ async function sstar(
   speed: number,
   onUpdate: (state: AnimationState) => void,
   onStats: (stats: Stats) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const gScore = new Map<string, number>()
   const fScore = new Map<string, number>()
   const cameFrom = new Map<string, string>()
   const visited = new Set<string>()
   const frontier = new MinHeap<string>()
+  const exploredEdges: Array<[string, string]> = []
 
   // Memory bound - cost threshold
   const costThreshold = heuristic(graph, start, end) * 2
@@ -367,48 +433,57 @@ async function sstar(
   let explored = 0
 
   while (!frontier.isEmpty()) {
+    if (signal?.aborted) return
+
     const current = frontier.pop()!
     frontierSet.delete(current)
 
     if (visited.has(current)) continue
 
     // S* pruning - skip if over threshold
-    if ((fScore.get(current) || Number.POSITIVE_INFINITY) > costThreshold) continue
+    if ((fScore.get(current) ?? Number.POSITIVE_INFINITY) > costThreshold) continue
 
     visited.add(current)
     explored++
 
-    onUpdate({ visited: new Set(visited), frontier: new Set(frontierSet), path: [] })
-    onStats({ nodesExplored: explored, pathLength: 0 })
-
     if (current === end) {
       const path = reconstructPath(cameFrom, end)
       const pathLength = calculatePathLength(graph, path)
-      onUpdate({ visited: new Set(visited), frontier: new Set(), path })
+      onUpdate({ visited: new Set(visited), frontier: new Set(), path, exploredEdges: [...exploredEdges] })
       onStats({ nodesExplored: explored, pathLength })
       return
     }
-
-    await sleep(Math.max(1, 100 - speed))
 
     const edges = graph.adjacency.get(current) || []
     for (const edge of edges) {
       if (visited.has(edge.to)) continue
 
-      const tentativeG = (gScore.get(current) || Number.POSITIVE_INFINITY) + edge.weight
+      const tentativeG = (gScore.get(current) ?? Number.POSITIVE_INFINITY) + edge.weight
       const newF = tentativeG + heuristic(graph, edge.to, end)
 
       // Prune if exceeds threshold
       if (newF > costThreshold) continue
 
-      if (tentativeG < (gScore.get(edge.to) || Number.POSITIVE_INFINITY)) {
+      if (tentativeG < (gScore.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
         cameFrom.set(edge.to, current)
         gScore.set(edge.to, tentativeG)
         fScore.set(edge.to, newF)
         frontier.push(edge.to, newF)
         frontierSet.add(edge.to)
+
+        exploredEdges.push([current, edge.to])
       }
     }
+
+    onUpdate({
+      visited: new Set(visited),
+      frontier: new Set(frontierSet),
+      path: [],
+      exploredEdges: [...exploredEdges],
+    })
+    onStats({ nodesExplored: explored, pathLength: 0 })
+
+    await sleep(Math.max(1, 100 - speed))
   }
 }
 
@@ -420,6 +495,7 @@ export async function runPathfinding(
   speed: number,
   onUpdate: (state: AnimationState) => void,
   onStats: (stats: Stats) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const strategies: Record<Algorithm, typeof dijkstra> = {
     dijkstra,
@@ -430,6 +506,6 @@ export async function runPathfinding(
 
   const strategy = strategies[algorithm]
   if (strategy) {
-    await strategy(graph, start, end, speed, onUpdate, onStats)
+    await strategy(graph, start, end, speed, onUpdate, onStats, signal)
   }
 }
