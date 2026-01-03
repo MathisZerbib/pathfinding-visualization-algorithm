@@ -5,7 +5,7 @@ import { useAppStore } from "@/lib/store"
 import { Dashboard } from "@/components/dashboard"
 import { StatsOverlay } from "@/components/stats-overlay"
 import { fetchOSMData, buildGraph, searchLocation, type SearchResult } from "@/lib/osm-fetcher"
-import { runPathfinding } from "@/lib/pathfinding"
+// import { runPathfinding } from "@/lib/pathfinding"
 import { Search, Loader2 } from "lucide-react"
 import L from "leaflet"
 
@@ -41,8 +41,7 @@ export default function GeoAlgorithmLab() {
   const setIsLoading = useAppStore((state) => state.setIsLoading)
   const setError = useAppStore((state) => state.setError)
   
-  // These are needed for effects but we can get them from store directly or use refs if we want to avoid re-renders
-  // But for now, let's just subscribe to them as they don't change often during animation (except start/end/graph)
+
   const startNode = useAppStore((state) => state.startNode)
   const endNode = useAppStore((state) => state.endNode)
   const algorithm = useAppStore((state) => state.algorithm)
@@ -376,11 +375,12 @@ export default function GeoAlgorithmLab() {
       fetchData()
     }
 
-    const onMoveEnd = () => {
+    const onMoveEnd = () => {      if (useAppStore.getState().isRunning) return
       clearTimeout(timeoutId)
+      setIsLoading(true)
       timeoutId = setTimeout(() => {
         fetchData()
-      }, 5000)
+      }, 2000)
     }
 
     map.on("moveend", onMoveEnd)

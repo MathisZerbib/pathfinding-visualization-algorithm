@@ -84,7 +84,7 @@ export function Dashboard() {
   return (
     <>
       {isLoading && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-2000">
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[2000]">
           <div className="bg-zinc-900/90 backdrop-blur-xl border border-blue-500/30 rounded-xl p-4 flex items-center gap-3 shadow-2xl shadow-black/50 animate-in fade-in zoom-in duration-300">
             <div className="w-5 h-5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
             <span className="text-sm text-blue-300 font-medium">Loading map data wait before selecting points...</span>
@@ -93,7 +93,7 @@ export function Dashboard() {
       )}
       <button
         onClick={() => setIsDashboardVisible(!isDashboardVisible)}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-1001 bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-full p-3 shadow-2xl shadow-black/50 hover:border-cyan-500/50 transition-all"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1001] bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-full p-3 shadow-2xl shadow-black/50 hover:border-cyan-500/50 transition-all"
         aria-label={isDashboardVisible ? "Hide dashboard" : "Show dashboard"}
       >
         {isDashboardVisible ? (
@@ -104,7 +104,7 @@ export function Dashboard() {
       </button>
 
       {isDashboardVisible && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-1000 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl p-4 min-w-95 shadow-2xl shadow-black/50">
             {/* Header */}
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-blue-500/20">
@@ -227,7 +227,7 @@ export function Dashboard() {
               <input
                 type="range"
                 min="1"
-                max="100"
+                max="1000"
                 value={animationSpeed}
                 onChange={(e) => setAnimationSpeed(Number(e.target.value))}
                 disabled={isRunning}
