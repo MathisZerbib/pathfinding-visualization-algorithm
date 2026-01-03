@@ -113,12 +113,12 @@ export default function GeoAlgorithmLab() {
       const currentGraph = useAppStore.getState().graph
       const currentPickingMode = useAppStore.getState().pickingMode
 
-      console.log("[v0] Map clicked", {
-        lat: e.latlng.lat,
-        lng: e.latlng.lng,
-        pickingMode: currentPickingMode,
-        hasGraph: !!currentGraph,
-      })
+      // console.log("[v0] Map clicked", {
+      //   lat: e.latlng.lat,
+      //   lng: e.latlng.lng,
+      //   pickingMode: currentPickingMode,
+      //   hasGraph: !!currentGraph,
+      // })
 
       if (!currentGraph) {
         console.log("[v0] No graph loaded yet")

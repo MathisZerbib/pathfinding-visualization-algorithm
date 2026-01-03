@@ -1,7 +1,7 @@
 "use client"
 
 import { useAppStore, type Algorithm } from "@/lib/store"
-import { MapPin, Zap, Play, ChevronDown, ChevronUp } from "lucide-react"
+import { MapPin, Zap, Play, ChevronDown, ChevronUp, RotateCcw } from "lucide-react"
 import { runPathfinding } from "@/lib/pathfinding"
 
 const algorithms: { id: Algorithm; name: string; desc: string }[] = [
@@ -22,7 +22,9 @@ export function Dashboard() {
   const setIsLoading = useAppStore((state) => state.setIsLoading)
   const graph = useAppStore((state) => state.graph)
   const startNode = useAppStore((state) => state.startNode)
+  const setStartNode = useAppStore((state) => state.setStartNode)
   const endNode = useAppStore((state) => state.endNode)
+  const setEndNode = useAppStore((state) => state.setEndNode)
   const error = useAppStore((state) => state.error)
   const setError = useAppStore((state) => state.setError)
   const isRunning = useAppStore((state) => state.isRunning)
@@ -31,6 +33,15 @@ export function Dashboard() {
   const setStats = useAppStore((state) => state.setStats)
   const isDashboardVisible = useAppStore((state) => state.isDashboardVisible)
   const setIsDashboardVisible = useAppStore((state) => state.setIsDashboardVisible)
+
+  const handleReset = () => {
+    setStartNode(null)
+    setEndNode(null)
+    setAnimationState({ visited: new Set(), frontier: new Set(), path: [], exploredEdges: [] })
+    setStats({ nodesExplored: 0, pathLength: 0 })
+    setError(null)
+    setPickingMode(null)
+  }
 
   const handlePickStart = () => {
     const newMode = pickingMode === "start" ? null : "start"
@@ -49,6 +60,7 @@ export function Dashboard() {
 
     console.log("[v0] Starting animation...")
     setIsRunning(true)
+    setIsDashboardVisible(false)
     setAnimationState({ visited: new Set(), frontier: new Set(), path: [], exploredEdges: [] })
 
     await runPathfinding(
@@ -66,6 +78,7 @@ export function Dashboard() {
 
     console.log("[v0] Animation finished")
     setIsRunning(false)
+    setIsDashboardVisible(true)
   }
 
   return (
@@ -86,9 +99,19 @@ export function Dashboard() {
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl p-4 min-w-[380px] shadow-2xl shadow-black/50">
             {/* Header */}
-            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-blue-500/20">
-              <Zap className="w-5 h-5 text-cyan-400" />
-              <span className="text-sm font-bold tracking-wider text-cyan-400">GEOSPATIAL ALGORITHM LAB</span>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-blue-500/20">
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-cyan-400" />
+                <span className="text-sm font-bold tracking-wider text-cyan-400">GEOSPATIAL ALGORITHM LAB</span>
+              </div>
+              <button
+                onClick={handleReset}
+                disabled={isRunning}
+                className="p-1.5 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Reset"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
             </div>
 
             {error && (
