@@ -1,7 +1,8 @@
 "use client"
 
+import { useRef } from "react"
 import { useAppStore, type Algorithm } from "@/lib/store"
-import { MapPin, Zap, Play, ChevronDown, ChevronUp, RotateCcw } from "lucide-react"
+import { MapPin, Zap, Play, ChevronDown, ChevronUp, RotateCcw, Square } from "lucide-react"
 import { runPathfinding } from "@/lib/pathfinding"
 
 const algorithms: { id: Algorithm; name: string; desc: string }[] = [
@@ -33,6 +34,8 @@ export function Dashboard() {
   const setStats = useAppStore((state) => state.setStats)
   const isDashboardVisible = useAppStore((state) => state.isDashboardVisible)
   const setIsDashboardVisible = useAppStore((state) => state.setIsDashboardVisible)
+  
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const handleReset = () => {
     setStartNode(null)
@@ -55,6 +58,15 @@ export function Dashboard() {
     setPickingMode(newMode)
   }
 
+  const handleCancelAnimation = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setIsRunning(false)
+    setIsDashboardVisible(true)
+  }
+
   const handleStartAnimation = async () => {
     if (!graph || !startNode || !endNode || isRunning) return
 
@@ -63,22 +75,31 @@ export function Dashboard() {
     setIsDashboardVisible(false)
     setAnimationState({ visited: new Set(), frontier: new Set(), path: [], exploredEdges: [] })
 
-    await runPathfinding(
-      graph,
-      startNode,
-      endNode,
-      algorithm,
-      () => useAppStore.getState().animationSpeed,
-      (state) => {
-        // console.log("[v0] Animation update", state.exploredEdges.length)
-        setAnimationState(state)
-      },
-      (stats) => setStats(stats),
-    )
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
 
-    console.log("[v0] Animation finished")
-    setIsRunning(false)
-    // setIsDashboardVisible(true) // Keep dashboard hidden after animation
+    try {
+      await runPathfinding(
+        graph,
+        startNode,
+        endNode,
+        algorithm,
+        () => useAppStore.getState().animationSpeed,
+        (state) => {
+          // console.log("[v0] Animation update", state.exploredEdges.length)
+          setAnimationState(state)
+        },
+        (stats) => setStats(stats),
+        abortController.signal
+      )
+      console.log("[v0] Animation finished")
+    } catch (e) {
+      console.log("[v0] Animation aborted or failed", e)
+    } finally {
+      setIsRunning(false)
+      abortControllerRef.current = null
+      // setIsDashboardVisible(true) // Keep dashboard hidden after animation
+    }
   }
 
   return (
@@ -200,23 +221,24 @@ export function Dashboard() {
               </button>
             </div>
 
-            <button
-              onClick={handleStartAnimation}
-              disabled={!graph || !startNode || !endNode || isRunning}
-              className="w-full mb-4 py-3 px-4 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-linear-to-r from-cyan-600 to-green-600 hover:from-cyan-500 hover:to-green-500 transition-all shadow-lg shadow-cyan-500/25 text-white"
-            >
-              {isRunning ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Running Animation...
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  Start Animation
-                </>
-              )}
-            </button>
+            {isRunning ? (
+              <button
+                onClick={handleCancelAnimation}
+                className="w-full mb-4 py-3 px-4 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 transition-all shadow-lg shadow-red-500/25 cursor-pointer"
+              >
+                <Square className="w-4 h-4 fill-current" />
+                Cancel Animation
+              </button>
+            ) : (
+              <button
+                onClick={handleStartAnimation}
+                disabled={!graph || !startNode || !endNode}
+                className="w-full mb-4 py-3 px-4 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-linear-to-r from-cyan-600 to-green-600 hover:from-cyan-500 hover:to-green-500 transition-all shadow-lg shadow-cyan-500/25 text-white cursor-pointer"
+              >
+                <Play className="w-4 h-4" />
+                Start Animation
+              </button>
+            )}
 
             {/* Speed Slider */}
             <div className="mb-4">
