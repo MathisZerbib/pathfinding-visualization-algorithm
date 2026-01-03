@@ -227,7 +227,7 @@ export function Dashboard() {
               <input
                 type="range"
                 min="1"
-                max="1000"
+                max="400"
                 value={animationSpeed}
                 onChange={(e) => setAnimationSpeed(Number(e.target.value))}
                 disabled={isRunning}

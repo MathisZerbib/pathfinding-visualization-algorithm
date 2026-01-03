@@ -182,7 +182,11 @@ async function dijkstra(
       }
     }
 
-    if (explored % 1 === 0) {
+    const speed = getSpeed()
+    const batchSize = speed > 100 ? Math.floor((speed - 100) / 2) + 1 : 1
+    const delay = speed <= 100 ? Math.max(1, 100 - speed) : 1
+
+    if (explored % batchSize === 0) {
       onUpdate({
         visited: new Set(visited),
         frontier: new Set(frontierSet),
@@ -190,7 +194,7 @@ async function dijkstra(
         exploredEdges: [...exploredEdges],
       })
       onStats({ nodesExplored: explored, pathLength: 0 })
-      await sleep(Math.max(1, 100 - getSpeed()))
+      await sleep(delay)
     }
   }
   
@@ -262,7 +266,11 @@ async function astar(
       }
     }
 
-    if (explored % 1 === 0) {
+    const speed = getSpeed()
+    const batchSize = speed > 100 ? Math.floor((speed - 100) / 2) + 1 : 1
+    const delay = speed <= 100 ? Math.max(1, 100 - speed) : 1
+
+    if (explored % batchSize === 0) {
       onUpdate({
         visited: new Set(visited),
         frontier: new Set(frontierSet),
@@ -270,7 +278,7 @@ async function astar(
         exploredEdges: [...exploredEdges],
       })
       onStats({ nodesExplored: explored, pathLength: 0 })
-      await sleep(Math.max(1, 100 - getSpeed()))
+      await sleep(delay)
     }
   }
 }
@@ -372,12 +380,18 @@ async function bidirectional(
       }
     }
 
-    const allVisited = new Set([...visitedF, ...visitedB])
-    const allFrontier = new Set([...frontierSetF, ...frontierSetB])
-    onUpdate({ visited: allVisited, frontier: allFrontier, path: [], exploredEdges: [...exploredEdges] })
-    onStats({ nodesExplored: explored, pathLength: 0 })
+    const speed = getSpeed()
+    const batchSize = speed > 100 ? Math.floor((speed - 100) / 2) + 1 : 1
+    const delay = speed <= 100 ? Math.max(1, 100 - speed) : 1
 
-    await sleep(Math.max(1, 100 - getSpeed()))
+    if (explored % batchSize === 0) {
+      const allVisited = new Set([...visitedF, ...visitedB])
+      const allFrontier = new Set([...frontierSetF, ...frontierSetB])
+      onUpdate({ visited: allVisited, frontier: allFrontier, path: [], exploredEdges: [...exploredEdges] })
+      onStats({ nodesExplored: explored, pathLength: 0 })
+
+      await sleep(delay)
+    }
 
     // Check termination
     if (meetingNode && bestDist < Number.POSITIVE_INFINITY) {
@@ -475,15 +489,21 @@ async function sstar(
       }
     }
 
-    onUpdate({
-      visited: new Set(visited),
-      frontier: new Set(frontierSet),
-      path: [],
-      exploredEdges: [...exploredEdges],
-    })
-    onStats({ nodesExplored: explored, pathLength: 0 })
+    const speed = getSpeed()
+    const batchSize = speed > 100 ? Math.floor((speed - 100) / 2) + 1 : 1
+    const delay = speed <= 100 ? Math.max(1, 100 - speed) : 1
 
-    await sleep(Math.max(1, 100 - getSpeed()))
+    if (explored % batchSize === 0) {
+      onUpdate({
+        visited: new Set(visited),
+        frontier: new Set(frontierSet),
+        path: [],
+        exploredEdges: [...exploredEdges],
+      })
+      onStats({ nodesExplored: explored, pathLength: 0 })
+
+      await sleep(delay)
+    }
   }
 }
 
