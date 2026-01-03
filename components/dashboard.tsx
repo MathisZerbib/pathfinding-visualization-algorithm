@@ -83,9 +83,17 @@ export function Dashboard() {
 
   return (
     <>
+      {isLoading && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-2000">
+          <div className="bg-zinc-900/90 backdrop-blur-xl border border-blue-500/30 rounded-xl p-4 flex items-center gap-3 shadow-2xl shadow-black/50 animate-in fade-in zoom-in duration-300">
+            <div className="w-5 h-5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+            <span className="text-sm text-blue-300 font-medium">Loading map data wait before selecting points...</span>
+          </div>
+        </div>
+      )}
       <button
         onClick={() => setIsDashboardVisible(!isDashboardVisible)}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1001] bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-full p-3 shadow-2xl shadow-black/50 hover:border-cyan-500/50 transition-all"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-1001 bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-full p-3 shadow-2xl shadow-black/50 hover:border-cyan-500/50 transition-all"
         aria-label={isDashboardVisible ? "Hide dashboard" : "Show dashboard"}
       >
         {isDashboardVisible ? (
@@ -96,8 +104,8 @@ export function Dashboard() {
       </button>
 
       {isDashboardVisible && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl p-4 min-w-[380px] shadow-2xl shadow-black/50">
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-1000 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl p-4 min-w-95 shadow-2xl shadow-black/50">
             {/* Header */}
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-blue-500/20">
               <div className="flex items-center gap-2">
@@ -113,6 +121,8 @@ export function Dashboard() {
                 <RotateCcw className="w-4 h-4" />
               </button>
             </div>
+
+
 
             {error && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -162,7 +172,7 @@ export function Dashboard() {
             <div className="flex gap-2 mb-4">
               <button
                 onClick={handlePickStart}
-                disabled={!graph || isRunning}
+                disabled={!graph || isRunning || isLoading}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                   pickingMode === "start"
                     ? "bg-green-500/20 border border-green-500/50 text-green-400 animate-pulse"
@@ -176,7 +186,7 @@ export function Dashboard() {
               </button>
               <button
                 onClick={handlePickEnd}
-                disabled={!graph || isRunning}
+                disabled={!graph || isRunning || isLoading}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                   pickingMode === "end"
                     ? "bg-red-500/20 border border-red-500/50 text-red-400 animate-pulse"
@@ -193,7 +203,7 @@ export function Dashboard() {
             <button
               onClick={handleStartAnimation}
               disabled={!graph || !startNode || !endNode || isRunning}
-              className="w-full mb-4 py-3 px-4 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-cyan-600 to-green-600 hover:from-cyan-500 hover:to-green-500 transition-all shadow-lg shadow-cyan-500/25 text-white"
+              className="w-full mb-4 py-3 px-4 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-linear-to-r from-cyan-600 to-green-600 hover:from-cyan-500 hover:to-green-500 transition-all shadow-lg shadow-cyan-500/25 text-white"
             >
               {isRunning ? (
                 <>

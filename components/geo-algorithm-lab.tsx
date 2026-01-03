@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback, useState } from "react"
 import { useAppStore } from "@/lib/store"
 import { Dashboard } from "@/components/dashboard"
 import { StatsOverlay } from "@/components/stats-overlay"
-import { fetchOSMData, buildGraph, searchLocation } from "@/lib/osm-fetcher"
+import { fetchOSMData, buildGraph, searchLocation, type SearchResult } from "@/lib/osm-fetcher"
 import { runPathfinding } from "@/lib/pathfinding"
 import { Search, Loader2 } from "lucide-react"
 import L from "leaflet"
@@ -24,6 +24,10 @@ export default function GeoAlgorithmLab() {
   const [leafletLoaded, setLeafletLoaded] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
+  const [suggestions, setSuggestions] = useState<SearchResult[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [notification, setNotification] = useState<string | null>(null)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Use selectors to avoid unnecessary re-renders
   const graph = useAppStore((state) => state.graph)
@@ -115,6 +119,7 @@ export default function GeoAlgorithmLab() {
       // Get fresh state from store
       const currentGraph = useAppStore.getState().graph
       const currentPickingMode = useAppStore.getState().pickingMode
+      const isLoading = useAppStore.getState().isLoading
 
       // console.log("[v0] Map clicked", {
       //   lat: e.latlng.lat,
@@ -122,6 +127,12 @@ export default function GeoAlgorithmLab() {
       //   pickingMode: currentPickingMode,
       //   hasGraph: !!currentGraph,
       // })
+
+      // if (isLoading) {
+      //   setNotification("Please wait for map data to load.")
+      //   setTimeout(() => setNotification(null), 3000)
+      //   return
+      // }
 
       if (!currentGraph) {
         console.log("[v0] No graph loaded yet")
@@ -327,6 +338,7 @@ export default function GeoAlgorithmLab() {
 
     setIsLoading(true)
     setError(null)
+    // setNotification("Loading map data... Please wait before selecting points.")
 
     try {
       const bounds = mapRef.current.getBounds()
@@ -341,10 +353,12 @@ export default function GeoAlgorithmLab() {
       const newGraph = buildGraph(osmData)
       setGraph(newGraph)
       setStats({ nodesInGraph: newGraph.nodes.size, nodesExplored: 0, pathLength: 0 })
+      setNotification(null)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
       console.error("Failed to fetch OSM data:", error)
       setError(errorMessage)
+      setNotification(null)
     } finally {
       setIsLoading(false)
     }
@@ -377,6 +391,46 @@ export default function GeoAlgorithmLab() {
     }
   }, [mapReady, graph, fetchData])
 
+  const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setSearchQuery(value)
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    if (value.trim().length < 3) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const results = await searchLocation(value)
+        setSuggestions(results)
+        setShowSuggestions(true)
+      } catch (error) {
+        console.error("Autocomplete failed:", error)
+      }
+    }, 300)
+  }
+
+  const handleSuggestionClick = (result: SearchResult) => {
+    setSearchQuery(result.display_name)
+    setShowSuggestions(false)
+    if (mapRef.current) {
+      mapRef.current.setView([parseFloat(result.lat), parseFloat(result.lon)], 15)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Tab" && suggestions.length > 0 && showSuggestions) {
+      e.preventDefault()
+      handleSuggestionClick(suggestions[0])
+    }
+  }
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!searchQuery.trim() || !mapRef.current) return
@@ -387,6 +441,7 @@ export default function GeoAlgorithmLab() {
       if (results.length > 0) {
         const { lat, lon } = results[0]
         mapRef.current.setView([parseFloat(lat), parseFloat(lon)], 15)
+        setShowSuggestions(false)
       }
     } catch (error) {
       console.error("Search failed:", error)
@@ -408,7 +463,7 @@ export default function GeoAlgorithmLab() {
       <div ref={mapContainerRef} className="w-full h-full" />
       
       {/* Search Bar */}
-      <div className="absolute top-4 left-4 z-[1000]">
+      <div className="absolute top-4 left-4 z-1000">
         <form onSubmit={handleSearch} className="relative group">
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
             {isSearching ? (
@@ -420,12 +475,42 @@ export default function GeoAlgorithmLab() {
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchInput}
+            onKeyDown={handleKeyDown}
+            onFocus={() => {
+              if (suggestions.length > 0) setShowSuggestions(true)
+            }}
+            onBlur={() => {
+              setTimeout(() => setShowSuggestions(false), 200)
+            }}
             placeholder="Search location..."
             className="w-64 bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 text-zinc-200 text-sm rounded-xl pl-10 pr-4 py-2.5 shadow-2xl shadow-black/50 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-zinc-600"
           />
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute top-full left-0 w-full mt-2 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-xl shadow-2xl overflow-hidden z-1001">
+              {suggestions.map((result, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => handleSuggestionClick(result)}
+                  className="w-full text-left px-4 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors border-b border-zinc-800/50 last:border-0 truncate"
+                >
+                  {result.display_name}
+                </button>
+              ))}
+            </div>
+          )}
         </form>
       </div>
+
+      {/* Notification */}
+      {notification && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-2000 pointer-events-none">
+          <div className="bg-zinc-900/90 backdrop-blur-xl border border-blue-500/30 text-blue-200 text-sm px-4 py-2 rounded-full shadow-2xl shadow-blue-500/20 animate-in fade-in slide-in-from-top-4">
+            {notification}
+          </div>
+        </div>
+      )}
 
       <StatsOverlay />
       <Dashboard />
