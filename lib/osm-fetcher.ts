@@ -207,3 +207,24 @@ export function buildGraph(osmData: OSMData): Graph {
 
   return { nodes, adjacency }
 }
+
+export interface SearchResult {
+  lat: string
+  lon: string
+  display_name: string
+}
+
+export async function searchLocation(query: string): Promise<SearchResult[]> {
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`,
+    {
+      headers: {
+        "User-Agent": "PathfindingVisualizer/1.0",
+      },
+    },
+  )
+  if (!response.ok) {
+    throw new Error("Failed to search location")
+  }
+  return response.json()
+}

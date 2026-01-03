@@ -112,12 +112,12 @@ async function dijkstra(
   graph: Graph,
   start: string,
   end: string,
-  speed: number,
+  getSpeed: () => number,
   onUpdate: (state: AnimationState) => void,
   onStats: (stats: Stats) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  console.log("[v0] Dijkstra started", { start, end, speed, nodes: graph.nodes.size })
+  console.log("[v0] Dijkstra started", { start, end, nodes: graph.nodes.size })
   const dist = new Map<string, number>()
   const cameFrom = new Map<string, string>()
   const visited = new Set<string>()
@@ -182,7 +182,7 @@ async function dijkstra(
       }
     }
 
-    if (explored % 5 === 0) {
+    if (explored % 1 === 0) {
       onUpdate({
         visited: new Set(visited),
         frontier: new Set(frontierSet),
@@ -190,7 +190,7 @@ async function dijkstra(
         exploredEdges: [...exploredEdges],
       })
       onStats({ nodesExplored: explored, pathLength: 0 })
-      await sleep(Math.max(1, 100 - speed))
+      await sleep(Math.max(1, 100 - getSpeed()))
     }
   }
   
@@ -208,12 +208,12 @@ async function astar(
   graph: Graph,
   start: string,
   end: string,
-  speed: number,
+  getSpeed: () => number,
   onUpdate: (state: AnimationState) => void,
   onStats: (stats: Stats) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  console.log("[v0] A* started", { start, end, speed })
+  console.log("[v0] A* started", { start, end })
   const gScore = new Map<string, number>()
   const fScore = new Map<string, number>()
   const cameFrom = new Map<string, string>()
@@ -262,7 +262,7 @@ async function astar(
       }
     }
 
-    if (explored % 10 === 0) {
+    if (explored % 1 === 0) {
       onUpdate({
         visited: new Set(visited),
         frontier: new Set(frontierSet),
@@ -270,7 +270,7 @@ async function astar(
         exploredEdges: [...exploredEdges],
       })
       onStats({ nodesExplored: explored, pathLength: 0 })
-      await sleep(Math.max(1, 100 - speed))
+      await sleep(Math.max(1, 100 - getSpeed()))
     }
   }
 }
@@ -279,7 +279,7 @@ async function bidirectional(
   graph: Graph,
   start: string,
   end: string,
-  speed: number,
+  getSpeed: () => number,
   onUpdate: (state: AnimationState) => void,
   onStats: (stats: Stats) => void,
   signal?: AbortSignal,
@@ -377,7 +377,7 @@ async function bidirectional(
     onUpdate({ visited: allVisited, frontier: allFrontier, path: [], exploredEdges: [...exploredEdges] })
     onStats({ nodesExplored: explored, pathLength: 0 })
 
-    await sleep(Math.max(1, 100 - speed))
+    await sleep(Math.max(1, 100 - getSpeed()))
 
     // Check termination
     if (meetingNode && bestDist < Number.POSITIVE_INFINITY) {
@@ -410,7 +410,7 @@ async function sstar(
   graph: Graph,
   start: string,
   end: string,
-  speed: number,
+  getSpeed: () => number,
   onUpdate: (state: AnimationState) => void,
   onStats: (stats: Stats) => void,
   signal?: AbortSignal,
@@ -483,7 +483,7 @@ async function sstar(
     })
     onStats({ nodesExplored: explored, pathLength: 0 })
 
-    await sleep(Math.max(1, 100 - speed))
+    await sleep(Math.max(1, 100 - getSpeed()))
   }
 }
 
@@ -492,7 +492,7 @@ export async function runPathfinding(
   start: string,
   end: string,
   algorithm: Algorithm,
-  speed: number,
+  getSpeed: () => number,
   onUpdate: (state: AnimationState) => void,
   onStats: (stats: Stats) => void,
   signal?: AbortSignal,
@@ -506,6 +506,6 @@ export async function runPathfinding(
 
   const strategy = strategies[algorithm]
   if (strategy) {
-    await strategy(graph, start, end, speed, onUpdate, onStats, signal)
+    await strategy(graph, start, end, getSpeed, onUpdate, onStats, signal)
   }
 }

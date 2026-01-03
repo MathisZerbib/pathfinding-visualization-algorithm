@@ -71,7 +71,7 @@ export const useAppStore = create<AppState>((set) => ({
   setAlgorithm: (algo) => set({ algorithm: algo }),
 
   animationSpeed: 50,
-  setAnimationSpeed: (speed) => set({ animationSpeed: speed }),
+  setAnimationSpeed: (speed) => set({ animationSpeed: speed * 2}),
 
   animationState: { visited: new Set(), frontier: new Set(), path: [], exploredEdges: [] },
   setAnimationState: (state) => set({ animationState: state }),

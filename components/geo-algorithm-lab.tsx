@@ -4,8 +4,9 @@ import { useEffect, useRef, useCallback, useState } from "react"
 import { useAppStore } from "@/lib/store"
 import { Dashboard } from "@/components/dashboard"
 import { StatsOverlay } from "@/components/stats-overlay"
-import { fetchOSMData, buildGraph } from "@/lib/osm-fetcher"
+import { fetchOSMData, buildGraph, searchLocation } from "@/lib/osm-fetcher"
 import { runPathfinding } from "@/lib/pathfinding"
+import { Search, Loader2 } from "lucide-react"
 import L from "leaflet"
 
 declare global {
@@ -21,6 +22,8 @@ export default function GeoAlgorithmLab() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [mapReady, setMapReady] = useState(false)
   const [leafletLoaded, setLeafletLoaded] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isSearching, setIsSearching] = useState(false)
 
   // Use selectors to avoid unnecessary re-renders
   const graph = useAppStore((state) => state.graph)
@@ -228,20 +231,19 @@ export default function GeoAlgorithmLab() {
 
     // Draw frontier with glow
     if (currentAnimationState.frontier.size > 0) {
-      ctx.shadowColor = "#3b82f6"
-      ctx.shadowBlur = 15
-      ctx.strokeStyle = "#3b82f6"
-      ctx.lineWidth = 3
+      ctx.shadowColor = "#60a5fa"
+      ctx.shadowBlur = 10
+      ctx.fillStyle = "#60a5fa"
       ctx.beginPath()
 
       for (const nodeId of currentAnimationState.frontier) {
         const node = currentGraph.nodes.get(nodeId)
         if (!node) continue
         const pos = latLngToPoint(node.lat, node.lng)
-        ctx.moveTo(pos.x + 4, pos.y)
-        ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2)
+        ctx.moveTo(pos.x + 2.5, pos.y)
+        ctx.arc(pos.x, pos.y, 2.5, 0, Math.PI * 2)
       }
-      ctx.stroke()
+      ctx.fill()
       ctx.shadowBlur = 0
     }
 
@@ -320,43 +322,78 @@ export default function GeoAlgorithmLab() {
     }
   }, [mapReady, drawFrame])
 
-  // Auto-fetch map data once the map is ready
-  useEffect(() => {
-    if (!mapReady || isLoading || graph) return
+  const fetchData = useCallback(async () => {
+    if (!mapRef.current) return
+
     setIsLoading(true)
-  }, [mapReady, isLoading, graph, setIsLoading])
+    setError(null)
 
-  // Fetch data handler
-  useEffect(() => {
-    if (!isLoading || !mapRef.current) return
-
-    const handleFetch = async () => {
-      setError(null)
-
-      try {
-        const bounds = mapRef.current!.getBounds()
-        const bbox = {
-          south: bounds.getSouth(),
-          west: bounds.getWest(),
-          north: bounds.getNorth(),
-          east: bounds.getEast(),
-        }
-
-        const osmData = await fetchOSMData(bbox)
-        const newGraph = buildGraph(osmData)
-        setGraph(newGraph)
-        setStats({ nodesInGraph: newGraph.nodes.size, nodesExplored: 0, pathLength: 0 })
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-        console.error("Failed to fetch OSM data:", error)
-        setError(errorMessage)
-      } finally {
-        setIsLoading(false)
+    try {
+      const bounds = mapRef.current.getBounds()
+      const bbox = {
+        south: bounds.getSouth(),
+        west: bounds.getWest(),
+        north: bounds.getNorth(),
+        east: bounds.getEast(),
       }
+
+      const osmData = await fetchOSMData(bbox)
+      const newGraph = buildGraph(osmData)
+      setGraph(newGraph)
+      setStats({ nodesInGraph: newGraph.nodes.size, nodesExplored: 0, pathLength: 0 })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
+      console.error("Failed to fetch OSM data:", error)
+      setError(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [setGraph, setStats, setIsLoading, setError])
+
+  // Auto-fetch map data with debounce
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return
+
+    const map = mapRef.current
+    let timeoutId: NodeJS.Timeout
+
+    // Initial fetch if no graph
+    if (!graph) {
+      fetchData()
     }
 
-    handleFetch()
-  }, [isLoading, setGraph, setStats, setIsLoading, setError])
+    const onMoveEnd = () => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        fetchData()
+      }, 5000)
+    }
+
+    map.on("moveend", onMoveEnd)
+
+    return () => {
+      map.off("moveend", onMoveEnd)
+      clearTimeout(timeoutId)
+    }
+  }, [mapReady, graph, fetchData])
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchQuery.trim() || !mapRef.current) return
+
+    setIsSearching(true)
+    try {
+      const results = await searchLocation(searchQuery)
+      if (results.length > 0) {
+        const { lat, lon } = results[0]
+        mapRef.current.setView([parseFloat(lat), parseFloat(lon)], 15)
+      }
+    } catch (error) {
+      console.error("Search failed:", error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
 
   if (!leafletLoaded) {
     return (
@@ -369,6 +406,27 @@ export default function GeoAlgorithmLab() {
   return (
     <div className="w-screen h-screen bg-[#0a0a0f] relative overflow-hidden">
       <div ref={mapContainerRef} className="w-full h-full" />
+      
+      {/* Search Bar */}
+      <div className="absolute top-4 left-4 z-[1000]">
+        <form onSubmit={handleSearch} className="relative group">
+          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+            {isSearching ? (
+              <Loader2 className="w-4 h-4 text-zinc-400 animate-spin" />
+            ) : (
+              <Search className="w-4 h-4 text-zinc-400 group-focus-within:text-blue-400 transition-colors" />
+            )}
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search location..."
+            className="w-64 bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 text-zinc-200 text-sm rounded-xl pl-10 pr-4 py-2.5 shadow-2xl shadow-black/50 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-zinc-600"
+          />
+        </form>
+      </div>
+
       <StatsOverlay />
       <Dashboard />
     </div>

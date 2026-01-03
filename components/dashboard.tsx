@@ -68,7 +68,7 @@ export function Dashboard() {
       startNode,
       endNode,
       algorithm,
-      animationSpeed,
+      () => useAppStore.getState().animationSpeed,
       (state) => {
         // console.log("[v0] Animation update", state.exploredEdges.length)
         setAnimationState(state)
@@ -78,7 +78,7 @@ export function Dashboard() {
 
     console.log("[v0] Animation finished")
     setIsRunning(false)
-    setIsDashboardVisible(true)
+    // setIsDashboardVisible(true) // Keep dashboard hidden after animation
   }
 
   return (
