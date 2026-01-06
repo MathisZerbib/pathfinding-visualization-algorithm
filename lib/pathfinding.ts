@@ -117,7 +117,7 @@ async function dijkstra(
   onStats: (stats: Stats) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  console.log("[v0] Dijkstra started", { start, end, nodes: graph.nodes.size })
+  console.log("Dijkstra started", { start, end, nodes: graph.nodes.size })
   const dist = new Map<string, number>()
   const cameFrom = new Map<string, string>()
   const visited = new Set<string>()
@@ -132,7 +132,7 @@ async function dijkstra(
 
   while (!frontier.isEmpty()) {
     if (signal?.aborted) {
-      console.log("[v0] Dijkstra aborted")
+      console.log("Dijkstra aborted")
       return
     }
 
@@ -144,7 +144,7 @@ async function dijkstra(
     explored++
 
     if (current === end) {
-      console.log("[v0] Dijkstra found path")
+      console.log("Dijkstra found path")
       const path = reconstructPath(cameFrom, end)
       const pathLength = calculatePathLength(graph, path)
       onUpdate({ visited: new Set(visited), frontier: new Set(), path, exploredEdges: [...exploredEdges] })
@@ -155,9 +155,9 @@ async function dijkstra(
     const edges = graph.adjacency.get(current) || []
     
     if (current === start) {
-      console.log(`[v0] Start node ${start} has ${edges.length} edges`)
+      console.log(`Start node ${start} has ${edges.length} edges`)
       if (edges.length === 0) {
-        console.warn(`[v0] Start node ${start} is isolated!`)
+        console.warn(`Start node ${start} is isolated!`)
       }
     }
 
@@ -168,7 +168,7 @@ async function dijkstra(
       const currentNeighborDist = dist.get(edge.to) ?? Number.POSITIVE_INFINITY
       
       if (current === start) {
-         console.log(`[v0] Checking neighbor ${edge.to}, weight: ${edge.weight}, newDist: ${newDist}, currentDist: ${currentNeighborDist}`)
+         console.log(`Checking neighbor ${edge.to}, weight: ${edge.weight}, newDist: ${newDist}, currentDist: ${currentNeighborDist}`)
       }
 
       if (newDist < currentNeighborDist) {
@@ -178,7 +178,7 @@ async function dijkstra(
         frontierSet.add(edge.to)
 
         exploredEdges.push([current, edge.to])
-        if (current === start) console.log(`[v0] Added ${edge.to} to frontier`)
+        if (current === start) console.log(`Added ${edge.to} to frontier`)
       }
     }
 
@@ -198,7 +198,7 @@ async function dijkstra(
     }
   }
   
-  console.log(`[v0] Dijkstra finished. Explored ${explored} nodes.`)
+  console.log(`Dijkstra finished. Explored ${explored} nodes.`)
   onUpdate({
     visited: new Set(visited),
     frontier: new Set(frontierSet),
@@ -217,7 +217,7 @@ async function astar(
   onStats: (stats: Stats) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  console.log("[v0] A* started", { start, end })
+  console.log("A* started", { start, end })
   const gScore = new Map<string, number>()
   const fScore = new Map<string, number>()
   const cameFrom = new Map<string, string>()

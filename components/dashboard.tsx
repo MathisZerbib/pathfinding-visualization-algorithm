@@ -47,13 +47,13 @@ export function Dashboard() {
 
   const handlePickStart = () => {
     const newMode = pickingMode === "start" ? null : "start"
-    console.log("[v0] Pick Start clicked, new mode:", newMode)
+    console.log("Pick Start clicked, new mode:", newMode)
     setPickingMode(newMode)
   }
 
   const handlePickEnd = () => {
     const newMode = pickingMode === "end" ? null : "end"
-    console.log("[v0] Pick End clicked, new mode:", newMode)
+    console.log("Pick End clicked, new mode:", newMode)
     setPickingMode(newMode)
   }
 
@@ -69,7 +69,7 @@ export function Dashboard() {
   const handleStartAnimation = async () => {
     if (!graph || !startNode || !endNode || isRunning) return
 
-    console.log("[v0] Starting animation...")
+    console.log("Starting animation...")
     setIsRunning(true)
     setIsDashboardVisible(false)
     setAnimationState({ visited: new Set(), frontier: new Set(), path: [], exploredEdges: [] })
@@ -85,15 +85,15 @@ export function Dashboard() {
         algorithm,
         () => useAppStore.getState().animationSpeed,
         (state) => {
-          // console.log("[v0] Animation update", state.exploredEdges.length)
+          // console.log("Animation update", state.exploredEdges.length)
           setAnimationState(state)
         },
         (stats) => setStats(stats),
         abortController.signal
       )
-      console.log("[v0] Animation finished")
+      console.log("Animation finished")
     } catch (e) {
-      console.log("[v0] Animation aborted or failed", e)
+      console.log("Animation aborted or failed", e)
     } finally {
       setIsRunning(false)
       abortControllerRef.current = null
