@@ -1,30 +1,22 @@
-# Geospatial Algorithm Lab
+# Pathfinding Visualization Algorithm
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
-
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/mathiszerbibs-projects/v0-geospatial-algorithm-lab)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/ecJhcBGG9Bb)
+Interactive pathfinding visualization on real map data using OpenStreetMap.
 
 ## Overview
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+A geospatial algorithm lab that visualizes pathfinding algorithms (Dijkstra, A*) on real-world map data. Select start and end points on an interactive map and watch the algorithms find the optimal path.
 
-## Deployment
+## Features
 
-Your project is live at:
-
-**[https://vercel.com/mathiszerbibs-projects/v0-geospatial-algorithm-lab](https://vercel.com/mathiszerbibs-projects/v0-geospatial-algorithm-lab)**
-
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.app/chat/ecJhcBGG9Bb](https://v0.app/chat/ecJhcBGG9Bb)**
+- **Real-time Pathfinding**: Visualize Dijkstra and A* algorithms in action
+- **OpenStreetMap Integration**: Work with actual road network data
+- **Interactive Map**: Click to select start and end points
+- **Algorithm Comparison**: Compare performance and behavior of different algorithms
+- **Dark/Light Mode**: Theme support for comfortable viewing
 
 ## How It Works
 
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+1. Select an area on the map
+2. Choose your preferred pathfinding algorithm
+3. Pick start and end points by clicking on the map
+4. Watch the algorithm explore the graph and find the optimal path

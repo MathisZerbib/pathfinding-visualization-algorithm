@@ -120,7 +120,7 @@ export default function GeoAlgorithmLab() {
       const currentPickingMode = useAppStore.getState().pickingMode
       const isLoading = useAppStore.getState().isLoading
 
-      // console.log("[v0] Map clicked", {
+      // console.log("Map clicked", {
       //   lat: e.latlng.lat,
       //   lng: e.latlng.lng,
       //   pickingMode: currentPickingMode,
@@ -134,12 +134,12 @@ export default function GeoAlgorithmLab() {
       // }
 
       if (!currentGraph) {
-        console.log("[v0] No graph loaded yet")
+        console.log("No graph loaded yet")
         return
       }
 
       if (currentPickingMode === null) {
-        console.log("[v0] Not in picking mode - click 'Pick Start' or 'Pick End' first")
+        console.log("Not in picking mode - click 'Pick Start' or 'Pick End' first")
         return
       }
 
@@ -157,18 +157,18 @@ export default function GeoAlgorithmLab() {
       }
 
       if (closestNode) {
-        console.log("[v0] Found closest node:", closestNode, "at distance:", minDist)
+        console.log("Found closest node:", closestNode, "at distance:", minDist)
 
         if (currentPickingMode === "start") {
           setStartNode(closestNode)
-          console.log("[v0] Set start node")
+          console.log("Set start node")
         } else {
           setEndNode(closestNode)
-          console.log("[v0] Set end node")
+          console.log("Set end node")
         }
         setPickingMode(null)
       } else {
-        console.log("[v0] No nearby nodes found")
+        console.log("No nearby nodes found")
       }
     },
     [setStartNode, setEndNode, setPickingMode],
@@ -179,7 +179,7 @@ export default function GeoAlgorithmLab() {
 
     const map = mapRef.current
 
-    console.log("[v0] Attaching map click listeners")
+    console.log("Attaching map click listeners")
 
     // Primary click handler for both desktop and mobile (Leaflet handles tap events as clicks)
     const clickHandler = (e: L.LeafletMouseEvent) => {
@@ -189,7 +189,7 @@ export default function GeoAlgorithmLab() {
     map.on("click", clickHandler)
 
     return () => {
-      console.log("[v0] Removing map click listeners")
+      console.log("Removing map click listeners")
       map.off("click", clickHandler)
     }
   }, [mapReady, handleMapInteraction])

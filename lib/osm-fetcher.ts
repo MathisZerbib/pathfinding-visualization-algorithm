@@ -81,8 +81,8 @@ export async function fetchOSMData(bbox: BBox): Promise<OSMData> {
     const server = OVERPASS_SERVERS[serverIndex]
 
     try {
-      console.log(`[v0] Fetching OSM data from ${server} (attempt ${serverIndex + 1}/${OVERPASS_SERVERS.length})`)
-      console.log(`[v0] BBox area: ${area.toFixed(4)} sq degrees`)
+      console.log(`Fetching OSM data from ${server} (attempt ${serverIndex + 1}/${OVERPASS_SERVERS.length})`)
+      console.log(`BBox area: ${area.toFixed(4)} sq degrees`)
 
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 65000) // 65s client timeout
@@ -108,7 +108,7 @@ export async function fetchOSMData(bbox: BBox): Promise<OSMData> {
         throw new Error("No road data found in this area. Try a different location.")
       }
 
-      console.log(`[v0] Successfully fetched ${data.elements.length} elements`)
+      console.log(`Successfully fetched ${data.elements.length} elements`)
 
       const nodes = new Map<number, OSMNode>()
       const ways: OSMWay[] = []
@@ -128,12 +128,12 @@ export async function fetchOSMData(bbox: BBox): Promise<OSMData> {
         }
       }
 
-      console.log(`[v0] Parsed ${nodes.size} nodes and ${ways.length} ways`)
+      console.log(`Parsed ${nodes.size} nodes and ${ways.length} ways`)
 
       return { nodes, ways }
     } catch (error) {
       lastError = error as Error
-      console.warn(`[v0] Failed to fetch from ${server}:`, error)
+      console.warn(`Failed to fetch from ${server}:`, error)
 
       // If it's not the last server, wait a bit before trying the next one
       if (serverIndex < OVERPASS_SERVERS.length - 1) {
