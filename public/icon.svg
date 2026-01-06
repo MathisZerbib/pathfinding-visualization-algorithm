@@ -2,13 +2,13 @@
   <style>
     @media (prefers-color-scheme: light) {
       .background { fill: #0ea5e9; }
-      .path { fill: #06b6d4; }
+      .path { stroke: #06b6d4; }
       .nodes { fill: #fbbf24; }
       .text { fill: white; }
     }
     @media (prefers-color-scheme: dark) {
       .background { fill: #0c4a6e; }
-      .path { fill: #0ea5e9; }
+      .path { stroke: #0ea5e9; }
       .nodes { fill: #f59e0b; }
       .text { fill: white; }
     }
@@ -30,13 +30,13 @@
   </g>
   
   <!-- Path/Route (zigzag pathfinding visualization) -->
-  <path class="path" 
+  <path 
     d="M 40 60 L 55 60 L 55 75 L 70 75 L 70 60 L 85 60 L 85 90 L 100 90 L 100 75 L 115 75 L 115 105 L 130 105 L 130 120 L 145 120" 
     stroke-width="8" 
     stroke-linecap="round" 
     stroke-linejoin="round"
     fill="none"
-    stroke="#06b6d4"
+    class="path"
     opacity="0.8"/>
   
   <!-- Start node (circle with location pin style) -->
