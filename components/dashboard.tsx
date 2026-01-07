@@ -124,7 +124,7 @@ export function Dashboard() {
       </button>
 
       {isDashboardVisible && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-bottom-4 duration-300 w-[calc(100vw-theme(spacing.8))] md:w-auto max-w-full px-4 md:px-0">
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-bottom-4 duration-300 w-[calc(100vw-2rem)] md:w-auto max-w-full px-4 md:px-0">
           <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl p-3 md:p-4 min-w-0 md:min-w-95 shadow-2xl shadow-black/50">
             {/* Header */}
             <div className="flex items-center justify-between mb-3 md:mb-4 pb-2 md:pb-3 border-b border-blue-500/20">

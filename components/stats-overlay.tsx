@@ -14,7 +14,7 @@ export function StatsOverlay() {
   const stats = useAppStore((state) => state.stats)
 
   return (
-    <div className="absolute top-16 md:top-4 left-1/2 -translate-x-1/2 z-1000 w-[calc(100vw-theme(spacing.8))] md:w-auto max-w-full px-4 md:px-0">
+    <div className="absolute top-16 md:top-4 left-1/2 -translate-x-1/2 z-1000 w-[calc(100vw-2rem)] md:w-auto max-w-full px-4 md:px-0">
       <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl px-3 md:px-6 py-2 md:py-3 flex items-center gap-3 md:gap-8 shadow-2xl shadow-black/50">
         {/* Algorithm Name */}
         <div className="flex-1 md:flex-initial min-w-0">
