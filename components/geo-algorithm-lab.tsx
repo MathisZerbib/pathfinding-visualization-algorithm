@@ -463,7 +463,7 @@ export default function GeoAlgorithmLab() {
       <div ref={mapContainerRef} className="w-full h-full" />
       
       {/* Search Bar */}
-      <div className="absolute top-4 left-4 z-1000">
+      <div className="absolute top-4 left-4 right-4 md:right-auto z-1000">
         <form onSubmit={handleSearch} className="relative group">
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
             {isSearching ? (
@@ -484,7 +484,7 @@ export default function GeoAlgorithmLab() {
               setTimeout(() => setShowSuggestions(false), 200)
             }}
             placeholder="Search location..."
-            className="w-64 bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 text-zinc-200 text-sm rounded-xl pl-10 pr-4 py-2.5 shadow-2xl shadow-black/50 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-zinc-600"
+            className="w-full md:w-64 bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 text-zinc-200 text-sm rounded-xl pl-10 pr-4 py-2.5 shadow-2xl shadow-black/50 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-zinc-600"
           />
           {showSuggestions && suggestions.length > 0 && (
             <div className="absolute top-full left-0 w-full mt-2 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-xl shadow-2xl overflow-hidden z-1001">
