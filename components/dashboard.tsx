@@ -124,7 +124,7 @@ export function Dashboard() {
       </button>
 
       {isDashboardVisible && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-bottom-4 duration-300 w-[calc(100%-2rem)] md:w-auto max-w-[95vw]">
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-bottom-4 duration-300 w-[calc(100vw-theme(spacing.8))] md:w-auto max-w-full px-4 md:px-0">
           <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-2xl p-3 md:p-4 min-w-0 md:min-w-95 shadow-2xl shadow-black/50">
             {/* Header */}
             <div className="flex items-center justify-between mb-3 md:mb-4 pb-2 md:pb-3 border-b border-blue-500/20">
@@ -149,7 +149,7 @@ export function Dashboard() {
                 <div className="flex items-start gap-2">
                   <div className="flex-1">
                     <div className="text-xs font-bold text-red-400 mb-1">ERROR</div>
-                    <div className="text-[10px] md:text-xs text-red-300/90 leading-relaxed">{error}</div>
+                    <div className="text-xs md:text-xs text-red-300/90 leading-relaxed">{error}</div>
                   </div>
                   <button
                     onClick={() => setError(null)}
@@ -179,10 +179,10 @@ export function Dashboard() {
                         : "bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700"
                     }`}
                   >
-                    <div className={`text-[10px] md:text-xs font-bold ${algorithm === algo.id ? "text-blue-400" : "text-zinc-400"}`}>
+                    <div className={`text-xs md:text-xs font-bold ${algorithm === algo.id ? "text-blue-400" : "text-zinc-400"}`}>
                       {algo.name}
                     </div>
-                    <div className="text-[9px] md:text-[10px] text-zinc-600">{algo.desc}</div>
+                    <div className="text-[10px] md:text-[10px] text-zinc-600">{algo.desc}</div>
                   </button>
                 ))}
               </div>
