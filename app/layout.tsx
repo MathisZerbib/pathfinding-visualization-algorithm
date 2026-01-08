@@ -32,6 +32,28 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-icon.png",
   },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://pathfinding-visualization-algorithm.vercel.app",
+    siteName: "Pathfinding Visualization Algorithm",
+    title: "Pathfinding Visualization Algorithm",
+    description: "Interactive pathfinding visualization on real map data using OpenStreetMap. Visualize Dijkstra and A* algorithms in action.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Pathfinding Visualization Algorithm - Interactive map-based pathfinding",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pathfinding Visualization Algorithm",
+    description: "Interactive pathfinding visualization on real map data using OpenStreetMap. Visualize Dijkstra and A* algorithms in action.",
+    images: ["/og-image.png"],
+  },
 }
 
 export const viewport: Viewport = {
