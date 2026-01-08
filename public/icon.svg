@@ -1,61 +1,75 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <style>
-    @media (prefers-color-scheme: light) {
-      .background { fill: #0ea5e9; }
-      .path { stroke: #06b6d4; }
-      .nodes { fill: #fbbf24; }
-      .text { fill: white; }
-    }
-    @media (prefers-color-scheme: dark) {
-      .background { fill: #0c4a6e; }
-      .path { stroke: #0ea5e9; }
-      .nodes { fill: #f59e0b; }
-      .text { fill: white; }
-    }
-  </style>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a2e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pathGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
   
   <!-- Background -->
-  <rect class="background" width="180" height="180" rx="37" />
+  <rect width="180" height="180" rx="36" fill="url(#bg)"/>
   
-  <!-- Grid pattern (subtle) -->
-  <g opacity="0.1">
-    <line x1="45" y1="30" x2="45" y2="150" stroke="white" stroke-width="1"/>
-    <line x1="75" y1="30" x2="75" y2="150" stroke="white" stroke-width="1"/>
-    <line x1="105" y1="30" x2="105" y2="150" stroke="white" stroke-width="1"/>
-    <line x1="135" y1="30" x2="135" y2="150" stroke="white" stroke-width="1"/>
-    <line x1="30" y1="45" x2="150" y2="45" stroke="white" stroke-width="1"/>
-    <line x1="30" y1="75" x2="150" y2="75" stroke="white" stroke-width="1"/>
-    <line x1="30" y1="105" x2="150" y2="105" stroke="white" stroke-width="1"/>
-    <line x1="30" y1="135" x2="150" y2="135" stroke="white" stroke-width="1"/>
+  <!-- Subtle grid lines -->
+  <g opacity="0.08" stroke="#22d3ee" stroke-width="1">
+    <line x1="40" y1="60" x2="140" y2="60"/>
+    <line x1="40" y1="90" x2="140" y2="90"/>
+    <line x1="40" y1="120" x2="140" y2="120"/>
+    <line x1="60" y1="40" x2="60" y2="140"/>
+    <line x1="90" y1="40" x2="90" y2="140"/>
+    <line x1="120" y1="40" x2="120" y2="140"/>
   </g>
   
-  <!-- Path/Route (zigzag pathfinding visualization) -->
+  <!-- Explored nodes (subtle) -->
+  <g opacity="0.25">
+    <circle cx="60" cy="60" r="3" fill="#22d3ee"/>
+    <circle cx="90" cy="60" r="3" fill="#22d3ee"/>
+    <circle cx="60" cy="90" r="3" fill="#22d3ee"/>
+    <circle cx="120" cy="60" r="3" fill="#22d3ee"/>
+    <circle cx="90" cy="120" r="3" fill="#22d3ee"/>
+    <circle cx="120" cy="90" r="3" fill="#22d3ee"/>
+  </g>
+  
+  <!-- Main path -->
   <path 
-    d="M 40 60 L 55 60 L 55 75 L 70 75 L 70 60 L 85 60 L 85 90 L 100 90 L 100 75 L 115 75 L 115 105 L 130 105 L 130 120 L 145 120" 
+    d="M 45 50 L 60 50 L 60 90 L 90 90 L 90 120 L 120 120 L 135 120" 
+    stroke="url(#pathGrad)" 
     stroke-width="8" 
     stroke-linecap="round" 
     stroke-linejoin="round"
     fill="none"
-    class="path"
-    opacity="0.8"/>
+    opacity="0.9"/>
   
-  <!-- Start node (circle with location pin style) -->
-  <g class="nodes">
-    <circle cx="40" cy="60" r="12" />
-    <circle cx="40" cy="60" r="6" fill="white"/>
+  <!-- Path glow effect -->
+  <path 
+    d="M 45 50 L 60 50 L 60 90 L 90 90 L 90 120 L 120 120 L 135 120" 
+    stroke="#22d3ee" 
+    stroke-width="16" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+    fill="none"
+    opacity="0.15"
+    filter="blur(4px)"/>
+  
+  <!-- Start marker -->
+  <g transform="translate(45, 50)">
+    <circle cx="0" cy="0" r="12" fill="#0a0a0f" stroke="#22d3ee" stroke-width="2.5"/>
+    <circle cx="0" cy="0" r="5" fill="#22d3ee"/>
   </g>
   
-  <!-- End node (target/flag style) -->
-  <g class="nodes">
-    <circle cx="145" cy="120" r="12" />
-    <path d="M 145 115 L 145 125 M 138 118 L 145 115 L 152 118" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- End marker -->
+  <g transform="translate(135, 120)">
+    <circle cx="0" cy="0" r="12" fill="#0a0a0f" stroke="#22d3ee" stroke-width="2.5"/>
+    <path d="M -4 0 L 0 -4 L 4 0 L 0 4 Z" fill="#22d3ee"/>
   </g>
   
-  <!-- Explored nodes (small dots along alternative paths) -->
-  <g class="nodes" opacity="0.4">
-    <circle cx="70" cy="90" r="4" />
-    <circle cx="100" cy="105" r="4" />
-    <circle cx="85" cy="120" r="4" />
-    <circle cx="115" cy="90" r="4" />
-  </g>
+  <!-- Key path nodes -->
+  <circle cx="60" cy="50" r="5" fill="#0a0a0f" stroke="#22d3ee" stroke-width="2"/>
+  <circle cx="60" cy="90" r="5" fill="#0a0a0f" stroke="#22d3ee" stroke-width="2"/>
+  <circle cx="90" cy="90" r="5" fill="#0a0a0f" stroke="#22d3ee" stroke-width="2"/>
+  <circle cx="90" cy="120" r="5" fill="#0a0a0f" stroke="#22d3ee" stroke-width="2"/>
+  <circle cx="120" cy="120" r="5" fill="#0a0a0f" stroke="#22d3ee" stroke-width="2"/>
 </svg>
