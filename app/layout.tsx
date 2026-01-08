@@ -10,7 +10,11 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Pathfinding Visualization Algorithm",
-  description: "Interactive pathfinding visualization on real map data",
+  description: "Explore Dijkstra and A* algorithms in real-time on interactive maps powered by OpenStreetMap",
+  keywords: ["pathfinding", "algorithm visualization", "Dijkstra", "A*", "graph algorithms", "OpenStreetMap", "interactive learning"],
+  authors: [{ name: "Mathis Zerbib" }],
+  creator: "Mathis Zerbib",
+  publisher: "Mathis Zerbib",
   icons: {
     icon: [
       {
@@ -36,23 +40,42 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://pathfinding-visualization-algorithm.vercel.app",
-    siteName: "Pathfinding Visualization Algorithm",
-    title: "Pathfinding Visualization Algorithm",
-    description: "Interactive pathfinding visualization on real map data using OpenStreetMap. Visualize Dijkstra and A* algorithms in action.",
+    siteName: "Pathfinding Visualization",
+    title: "Pathfinding Visualization | Dijkstra & A* Algorithms on Real Maps",
+    description: "Explore and visualize Dijkstra and A* pathfinding algorithms in real-time on interactive maps. Educational tool built with OpenStreetMap and Next.js.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Pathfinding Visualization Algorithm - Interactive map-based pathfinding",
+        alt: "Pathfinding Visualization - Interactive Dijkstra and A* algorithms demonstration on real map data",
+        type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pathfinding Visualization Algorithm",
-    description: "Interactive pathfinding visualization on real map data using OpenStreetMap. Visualize Dijkstra and A* algorithms in action.",
-    images: ["/og-image.png"],
+    site: "@MathisZerbib",
+    creator: "@MathisZerbib",
+    title: "Pathfinding Visualization | Dijkstra & A* Algorithms",
+    description: "Explore and visualize Dijkstra and A* pathfinding algorithms in real-time on interactive maps. Educational tool built with OpenStreetMap and Next.js.",
+    images: [
+      {
+        url: "/og-image.png",
+        alt: "Pathfinding Visualization - Interactive Dijkstra and A* algorithms demonstration on real map data",
+      },
+    ],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 }
 
