@@ -9,9 +9,9 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Pathfinding Visualization Algorithm",
-  description: "Explore Dijkstra and A* algorithms in real-time on interactive maps powered by OpenStreetMap",
-  keywords: ["pathfinding", "algorithm visualization", "Dijkstra", "A*", "graph algorithms", "OpenStreetMap", "interactive learning"],
+  title: "Geospatial Algorithm Lab | Pathfinding Visualization",
+  description: "Interactive geospatial pathfinding visualization tool. Explore Dijkstra and A* algorithms on real-world road networks with OpenStreetMap data.",
+  keywords: ["geospatial algorithms", "pathfinding", "Dijkstra", "A*", "graph algorithms", "OpenStreetMap", "algorithm visualization", "road networks", "developer tools"],
   authors: [{ name: "Mathis Zerbib" }],
   creator: "Mathis Zerbib",
   publisher: "Mathis Zerbib",
@@ -40,15 +40,15 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://pathfinding-visualization-algorithm.vercel.app",
-    siteName: "Pathfinding Visualization",
-    title: "Pathfinding Visualization | Dijkstra & A* Algorithms on Real Maps",
-    description: "Explore and visualize Dijkstra and A* pathfinding algorithms in real-time on interactive maps. Educational tool built with OpenStreetMap and Next.js.",
+    siteName: "Geospatial Algorithm Lab",
+    title: "Geospatial Algorithm Lab | Real-time Pathfinding Visualization",
+    description: "Interactive tool for visualizing pathfinding algorithms (Dijkstra & A*) on real-world geographic road networks. Educational resource for developers and students exploring graph algorithms with OpenStreetMap data.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Pathfinding Visualization - Interactive Dijkstra and A* algorithms demonstration on real map data",
+        alt: "Geospatial Algorithm Lab - Network graph showing optimal pathfinding route with Dijkstra and A* algorithms on geographic road data",
         type: "image/png",
       },
     ],
@@ -57,12 +57,12 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "@MathisZerbib",
     creator: "@MathisZerbib",
-    title: "Pathfinding Visualization | Dijkstra & A* Algorithms",
-    description: "Explore and visualize Dijkstra and A* pathfinding algorithms in real-time on interactive maps. Educational tool built with OpenStreetMap and Next.js.",
+    title: "Geospatial Algorithm Lab | Pathfinding Visualization",
+    description: "Interactive tool for visualizing pathfinding algorithms (Dijkstra & A*) on real-world geographic road networks. Educational resource for developers and students exploring graph algorithms.",
     images: [
       {
         url: "/og-image.png",
-        alt: "Pathfinding Visualization - Interactive Dijkstra and A* algorithms demonstration on real map data",
+        alt: "Geospatial Algorithm Lab - Network graph showing optimal pathfinding route with Dijkstra and A* algorithms on geographic road data",
       },
     ],
   },
