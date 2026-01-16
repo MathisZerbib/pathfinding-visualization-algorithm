@@ -113,7 +113,7 @@ export function Dashboard() {
       )}
       <button
         onClick={() => setIsDashboardVisible(!isDashboardVisible)}
-        className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-[1000] bg-zinc-900/90 backdrop-blur-xl border-2 border-zinc-800 rounded-full p-3 shadow-2xl shadow-black/50 hover:border-cyan-500/50 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+        className="fixed bottom-20 z-[1000] bg-zinc-900/90 backdrop-blur-xl border-2 border-zinc-800 rounded-full p-3 shadow-2xl shadow-black/50 hover:border-cyan-500/50 transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
         aria-label={isDashboardVisible ? "Hide dashboard" : "Show dashboard"}
       >
         {isDashboardVisible ? (
