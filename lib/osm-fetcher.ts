@@ -1,5 +1,5 @@
 import { VectorTile } from "@mapbox/vector-tile"
-import Pbf from "pbf"
+import { PbfReader } from "pbf"
 
 export interface OSMNode {
   id: number
@@ -75,7 +75,7 @@ export async function fetchOSMData(bbox: BBox): Promise<OSMData> {
       )
       if (res.status === 404 || res.status === 204) return // empty tile (sea)
       if (!res.ok) throw new Error(`Mapbox tiles: HTTP ${res.status}`)
-      const roads = new VectorTile(new Pbf(await res.arrayBuffer())).layers.road
+      const roads = new VectorTile(new PbfReader(await res.arrayBuffer())).layers.road
       if (!roads) return
 
       for (let i = 0; i < roads.length; i++) {
