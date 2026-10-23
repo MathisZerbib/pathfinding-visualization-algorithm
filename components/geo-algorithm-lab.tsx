@@ -8,6 +8,8 @@ import { fetchOSMData, buildGraph, searchLocation, type SearchResult } from "@/l
 // import { runPathfinding } from "@/lib/pathfinding"
 import { Search, Loader2 } from "lucide-react"
 import L from "leaflet"
+import mapboxgl from "mapbox-gl"
+import "mapbox-gl/dist/mapbox-gl.css"
 
 declare global {
   interface Window {
@@ -70,10 +72,33 @@ export default function GeoAlgorithmLab() {
       tapTolerance: 20,
     })
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map)
+    // Mapbox GL basemap under Leaflet's panes, so label layers can be tuned (raster tiles bake them in)
+    const glContainer = document.createElement("div")
+    glContainer.style.cssText = "position:absolute;inset:0;pointer-events:none"
+    map.getContainer().prepend(glContainer)
+    const glMap = new mapboxgl.Map({
+      container: glContainer,
+      accessToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN,
+      style: "mapbox://styles/mapbox/dark-v11",
+      interactive: false,
+      attributionControl: false,
+      center: [-73.9855, 40.758],
+      zoom: 14, // Mapbox GL zoom = Leaflet zoom - 1 (512px vs 256px tiles)
+    })
+    // Street names only when zoomed in close (Leaflet zoom 17+)
+    glMap.on("style.load", () => glMap.setLayerZoomRange("road-label-simple", 16, 24))
+    const syncGl = () => {
+      const c = map.getCenter()
+      glMap.jumpTo({ center: [c.lng, c.lat], zoom: map.getZoom() - 1 })
+    }
+    map.on("move zoom", syncGl)
+    map.on("zoomanim", (e: L.ZoomAnimEvent) =>
+      glMap.easeTo({ center: [e.center.lng, e.center.lat], zoom: e.zoom - 1, duration: 250 }),
+    )
+    map.on("resize", () => glMap.resize())
+    map.attributionControl.addAttribution(
+      '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    )
 
     // Create canvas overlay
     const canvas = document.createElement("canvas")
@@ -106,6 +131,7 @@ export default function GeoAlgorithmLab() {
     setMapReady(true)
 
     return () => {
+      glMap.remove()
       if (mapRef.current) {
         mapRef.current.remove()
         mapRef.current = null
@@ -138,10 +164,11 @@ export default function GeoAlgorithmLab() {
         return
       }
 
-      if (currentPickingMode === null) {
-        console.log("Not in picking mode - click 'Pick Start' or 'Pick End' first")
-        return
-      }
+      if (useAppStore.getState().isRunning) return
+      // Without an explicit mode: first click sets start, second sets end
+      const { startNode: currentStart, endNode: currentEnd } = useAppStore.getState()
+      const mode = currentPickingMode ?? (!currentStart ? "start" : !currentEnd ? "end" : null)
+      if (mode === null) return
 
       const { lat, lng } = e.latlng
       let closestNode: string | null = null
@@ -159,7 +186,7 @@ export default function GeoAlgorithmLab() {
       if (closestNode) {
         console.log("Found closest node:", closestNode, "at distance:", minDist)
 
-        if (currentPickingMode === "start") {
+        if (mode === "start") {
           setStartNode(closestNode)
           console.log("Set start node")
         } else {
@@ -463,7 +490,7 @@ export default function GeoAlgorithmLab() {
       <div ref={mapContainerRef} className="w-full h-full" />
       
       {/* Search Bar */}
-      <div className="absolute top-4 left-4 right-4 md:right-auto z-[1002]">
+      <div className="absolute top-[max(1rem,env(safe-area-inset-top))] left-4 right-4 md:right-auto z-[1002]">
         <form onSubmit={handleSearch} className="relative group">
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
             {isSearching ? (
