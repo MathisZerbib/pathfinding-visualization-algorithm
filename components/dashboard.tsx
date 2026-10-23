@@ -107,7 +107,7 @@ export function Dashboard() {
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[2000]">
           <div className="bg-zinc-900/90 backdrop-blur-xl border border-blue-500/30 rounded-xl p-3 md:p-4 flex items-center gap-2 md:gap-3 shadow-2xl shadow-black/50 animate-in fade-in zoom-in duration-300">
             <div className="w-4 md:w-5 h-4 md:h-5 aspect-square border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
-            <span className="text-xs md:text-sm text-blue-300 font-medium">Loading map data wait before selecting points...</span>
+            <span className="text-xs md:text-sm text-blue-300 font-medium">Loading road network…</span>
           </div>
         </div>
       )}

@@ -88,6 +88,6 @@ export const useAppStore = create<AppState>((set) => ({
   error: null,
   setError: (error) => set({ error }),
 
-  isDashboardVisible: false,
+  isDashboardVisible: true,
   setIsDashboardVisible: (visible) => set({ isDashboardVisible: visible }),
 }))

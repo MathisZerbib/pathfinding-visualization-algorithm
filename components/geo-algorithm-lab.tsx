@@ -70,10 +70,16 @@ export default function GeoAlgorithmLab() {
       tapTolerance: 20,
     })
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map)
+    L.tileLayer(
+      `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/512/{z}/{x}/{y}@2x?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`,
+      {
+        attribution:
+          '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        tileSize: 512,
+        zoomOffset: -1,
+        maxZoom: 19,
+      },
+    ).addTo(map)
 
     // Create canvas overlay
     const canvas = document.createElement("canvas")
@@ -138,10 +144,11 @@ export default function GeoAlgorithmLab() {
         return
       }
 
-      if (currentPickingMode === null) {
-        console.log("Not in picking mode - click 'Pick Start' or 'Pick End' first")
-        return
-      }
+      if (useAppStore.getState().isRunning) return
+      // Without an explicit mode: first click sets start, second sets end
+      const { startNode: currentStart, endNode: currentEnd } = useAppStore.getState()
+      const mode = currentPickingMode ?? (!currentStart ? "start" : !currentEnd ? "end" : null)
+      if (mode === null) return
 
       const { lat, lng } = e.latlng
       let closestNode: string | null = null
@@ -159,7 +166,7 @@ export default function GeoAlgorithmLab() {
       if (closestNode) {
         console.log("Found closest node:", closestNode, "at distance:", minDist)
 
-        if (currentPickingMode === "start") {
+        if (mode === "start") {
           setStartNode(closestNode)
           console.log("Set start node")
         } else {
