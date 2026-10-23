@@ -123,3 +123,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Keep map attributions above the mobile bottom sheet */
+@media (max-width: 767px) {
+  .leaflet-container .leaflet-bottom,
+  .leaflet-container .mapboxgl-ctrl-bottom-left {
+    bottom: var(--sheet-h, 0px);
+  }
+}
+
+.leaflet-container .leaflet-control-attribution {
+  background: rgb(10 10 15 / 0.7);
+  color: #71717a;
+}
+.leaflet-container .leaflet-control-attribution a {
+  color: #a1a1aa;
+}
