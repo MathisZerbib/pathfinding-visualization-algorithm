@@ -1,531 +1,149 @@
-import type { Graph } from "./osm-fetcher"
+import { haversineDistance, type Graph } from "./osm-fetcher.ts"
 import type { Algorithm } from "./store"
 
-interface AnimationState {
-  visited: Set<string>
-  frontier: Set<string>
+export interface SearchResult {
+  edges: Array<[string, string]> // relaxed edges, in exploration order
   path: string[]
-  exploredEdges: Array<[string, string]>
-}
-
-interface Stats {
-  nodesInGraph?: number
-  nodesExplored: number
-  pathLength: number
+  explored: number
+  length: number // meters
 }
 
 class MinHeap<T> {
   private heap: { item: T; priority: number }[] = []
 
+  get size() {
+    return this.heap.length
+  }
+
+  peekPriority(): number {
+    return this.heap[0]?.priority ?? Number.POSITIVE_INFINITY
+  }
+
   push(item: T, priority: number) {
     this.heap.push({ item, priority })
-    this.bubbleUp(this.heap.length - 1)
-  }
-
-  pop(): T | undefined {
-    if (this.heap.length === 0) return undefined
-    const top = this.heap[0]
-    const last = this.heap.pop()!
-    if (this.heap.length > 0) {
-      this.heap[0] = last
-      this.bubbleDown(0)
-    }
-    return top.item
-  }
-
-  isEmpty(): boolean {
-    return this.heap.length === 0
-  }
-
-  private bubbleUp(i: number) {
+    let i = this.heap.length - 1
     while (i > 0) {
-      const parent = Math.floor((i - 1) / 2)
+      const parent = (i - 1) >> 1
       if (this.heap[parent].priority <= this.heap[i].priority) break
       ;[this.heap[parent], this.heap[i]] = [this.heap[i], this.heap[parent]]
       i = parent
     }
   }
 
-  private bubbleDown(i: number) {
-    const n = this.heap.length
-    while (true) {
-      const left = 2 * i + 1
-      const right = 2 * i + 2
-      let smallest = i
-      if (left < n && this.heap[left].priority < this.heap[smallest].priority) {
-        smallest = left
+  pop(): T | undefined {
+    const top = this.heap[0]
+    const last = this.heap.pop()
+    if (this.heap.length > 0 && last) {
+      this.heap[0] = last
+      let i = 0
+      while (true) {
+        const [left, right] = [2 * i + 1, 2 * i + 2]
+        let smallest = i
+        if (left < this.heap.length && this.heap[left].priority < this.heap[smallest].priority) smallest = left
+        if (right < this.heap.length && this.heap[right].priority < this.heap[smallest].priority) smallest = right
+        if (smallest === i) break
+        ;[this.heap[smallest], this.heap[i]] = [this.heap[i], this.heap[smallest]]
+        i = smallest
       }
-      if (right < n && this.heap[right].priority < this.heap[smallest].priority) {
-        smallest = right
-      }
-      if (smallest === i) break
-      ;[this.heap[smallest], this.heap[i]] = [this.heap[i], this.heap[smallest]]
-      i = smallest
     }
+    return top?.item
   }
 }
 
-function heuristic(graph: Graph, nodeId: string, goalId: string): number {
-  const node = graph.nodes.get(nodeId)
-  const goal = graph.nodes.get(goalId)
-  if (!node || !goal) return 0
-
-  // Haversine distance as heuristic
-  const R = 6371000
-  const dLat = ((goal.lat - node.lat) * Math.PI) / 180
-  const dLng = ((goal.lng - node.lng) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((node.lat * Math.PI) / 180) *
-      Math.cos((goal.lat * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
-}
-
-function reconstructPath(cameFrom: Map<string, string>, current: string): string[] {
-  const path = [current]
-  while (cameFrom.has(current)) {
-    current = cameFrom.get(current)!
-    path.unshift(current)
+function reconstructPath(cameFrom: Map<string, string>, node: string): string[] {
+  const path = [node]
+  while (cameFrom.has(node)) {
+    node = cameFrom.get(node)!
+    path.unshift(node)
   }
   return path
 }
 
-function calculatePathLength(graph: Graph, path: string[]): number {
-  let length = 0
-  for (let i = 0; i < path.length - 1; i++) {
-    const edges = graph.adjacency.get(path[i]) || []
-    const edge = edges.find((e) => e.to === path[i + 1])
-    if (edge) length += edge.weight
-  }
-  return length
-}
-
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-// Strategy implementations
-async function dijkstra(
-  graph: Graph,
-  start: string,
-  end: string,
-  getSpeed: () => number,
-  onUpdate: (state: AnimationState) => void,
-  onStats: (stats: Stats) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  console.log("Dijkstra started", { start, end, nodes: graph.nodes.size })
-  const dist = new Map<string, number>()
+// Dijkstra (h = 0), A* (h = straight-line distance) and S* (A* pruned above a cost bound)
+function bestFirst(graph: Graph, start: string, end: string, h: (id: string) => number, bound = Infinity): SearchResult {
+  const cost = new Map([[start, 0]])
   const cameFrom = new Map<string, string>()
-  const visited = new Set<string>()
-  const frontier = new MinHeap<string>()
-  const exploredEdges: Array<[string, string]> = []
+  const done = new Set<string>()
+  const heap = new MinHeap<string>()
+  const edges: Array<[string, string]> = []
+  heap.push(start, h(start))
 
-  dist.set(start, 0)
-  frontier.push(start, 0)
-
-  const frontierSet = new Set<string>([start])
-  let explored = 0
-
-  while (!frontier.isEmpty()) {
-    if (signal?.aborted) {
-      console.log("Dijkstra aborted")
-      return
-    }
-
-    const current = frontier.pop()!
-    frontierSet.delete(current)
-
-    if (visited.has(current)) continue
-    visited.add(current)
-    explored++
-
+  while (heap.size > 0) {
+    const current = heap.pop()!
+    if (done.has(current)) continue
+    done.add(current)
     if (current === end) {
-      console.log("Dijkstra found path")
-      const path = reconstructPath(cameFrom, end)
-      const pathLength = calculatePathLength(graph, path)
-      onUpdate({ visited: new Set(visited), frontier: new Set(), path, exploredEdges: [...exploredEdges] })
-      onStats({ nodesExplored: explored, pathLength })
-      return
+      return { edges, path: reconstructPath(cameFrom, end), explored: done.size, length: cost.get(end)! }
     }
-
-    const edges = graph.adjacency.get(current) || []
-    
-    if (current === start) {
-      console.log(`Start node ${start} has ${edges.length} edges`)
-      if (edges.length === 0) {
-        console.warn(`Start node ${start} is isolated!`)
-      }
-    }
-
-    for (const edge of edges) {
-      if (visited.has(edge.to)) continue
-
-      const newDist = (dist.get(current) ?? Number.POSITIVE_INFINITY) + edge.weight
-      const currentNeighborDist = dist.get(edge.to) ?? Number.POSITIVE_INFINITY
-      
-      if (current === start) {
-         console.log(`Checking neighbor ${edge.to}, weight: ${edge.weight}, newDist: ${newDist}, currentDist: ${currentNeighborDist}`)
-      }
-
-      if (newDist < currentNeighborDist) {
-        dist.set(edge.to, newDist)
-        cameFrom.set(edge.to, current)
-        frontier.push(edge.to, newDist)
-        frontierSet.add(edge.to)
-
-        exploredEdges.push([current, edge.to])
-        if (current === start) console.log(`Added ${edge.to} to frontier`)
-      }
-    }
-
-    const speed = getSpeed()
-    const batchSize = speed > 100 ? Math.floor((speed - 100) / 2) + 1 : 1
-    const delay = speed <= 100 ? Math.max(1, 100 - speed) : 1
-
-    if (explored % batchSize === 0) {
-      onUpdate({
-        visited: new Set(visited),
-        frontier: new Set(frontierSet),
-        path: [],
-        exploredEdges: [...exploredEdges],
-      })
-      onStats({ nodesExplored: explored, pathLength: 0 })
-      await sleep(delay)
+    for (const { to, weight } of graph.adjacency.get(current) ?? []) {
+      const next = cost.get(current)! + weight
+      if (done.has(to) || next >= (cost.get(to) ?? Infinity) || next + h(to) > bound) continue
+      cost.set(to, next)
+      cameFrom.set(to, current)
+      heap.push(to, next + h(to))
+      edges.push([current, to])
     }
   }
-  
-  console.log(`Dijkstra finished. Explored ${explored} nodes.`)
-  onUpdate({
-    visited: new Set(visited),
-    frontier: new Set(frontierSet),
-    path: [],
-    exploredEdges: [...exploredEdges],
+  return { edges, path: [], explored: done.size, length: 0 }
+}
+
+// Two Dijkstra searches, from start and from end, until their frontiers can no longer improve the best meeting point
+function bidirectional(graph: Graph, start: string, end: string): SearchResult {
+  const sides = [start, end].map((origin) => {
+    const heap = new MinHeap<string>()
+    heap.push(origin, 0)
+    return { heap, cost: new Map([[origin, 0]]), cameFrom: new Map<string, string>(), done: new Set<string>() }
   })
-  onStats({ nodesExplored: explored, pathLength: 0 })
-}
+  const edges: Array<[string, string]> = []
+  let best = Infinity
+  let meeting: string | null = null
 
-async function astar(
-  graph: Graph,
-  start: string,
-  end: string,
-  getSpeed: () => number,
-  onUpdate: (state: AnimationState) => void,
-  onStats: (stats: Stats) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  console.log("A* started", { start, end })
-  const gScore = new Map<string, number>()
-  const fScore = new Map<string, number>()
-  const cameFrom = new Map<string, string>()
-  const visited = new Set<string>()
-  const frontier = new MinHeap<string>()
-  const exploredEdges: Array<[string, string]> = []
-
-  gScore.set(start, 0)
-  fScore.set(start, heuristic(graph, start, end))
-  frontier.push(start, fScore.get(start)!)
-
-  const frontierSet = new Set<string>([start])
-  let explored = 0
-
-  while (!frontier.isEmpty()) {
-    if (signal?.aborted) return
-
-    const current = frontier.pop()!
-    frontierSet.delete(current)
-
-    if (visited.has(current)) continue
-    visited.add(current)
-    explored++
-
-    if (current === end) {
-      const path = reconstructPath(cameFrom, end)
-      const pathLength = calculatePathLength(graph, path)
-      onUpdate({ visited: new Set(visited), frontier: new Set(), path, exploredEdges: [...exploredEdges] })
-      onStats({ nodesExplored: explored, pathLength })
-      return
-    }
-
-    const edges = graph.adjacency.get(current) || []
-    for (const edge of edges) {
-      if (visited.has(edge.to)) continue
-
-      const tentativeG = (gScore.get(current) ?? Number.POSITIVE_INFINITY) + edge.weight
-      if (tentativeG < (gScore.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
-        cameFrom.set(edge.to, current)
-        gScore.set(edge.to, tentativeG)
-        fScore.set(edge.to, tentativeG + heuristic(graph, edge.to, end))
-        frontier.push(edge.to, fScore.get(edge.to)!)
-        frontierSet.add(edge.to)
-
-        exploredEdges.push([current, edge.to])
-      }
-    }
-
-    const speed = getSpeed()
-    const batchSize = speed > 100 ? Math.floor((speed - 100) / 2) + 1 : 1
-    const delay = speed <= 100 ? Math.max(1, 100 - speed) : 1
-
-    if (explored % batchSize === 0) {
-      onUpdate({
-        visited: new Set(visited),
-        frontier: new Set(frontierSet),
-        path: [],
-        exploredEdges: [...exploredEdges],
-      })
-      onStats({ nodesExplored: explored, pathLength: 0 })
-      await sleep(delay)
-    }
-  }
-}
-
-async function bidirectional(
-  graph: Graph,
-  start: string,
-  end: string,
-  getSpeed: () => number,
-  onUpdate: (state: AnimationState) => void,
-  onStats: (stats: Stats) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  const distF = new Map<string, number>()
-  const distB = new Map<string, number>()
-  const cameFromF = new Map<string, string>()
-  const cameFromB = new Map<string, string>()
-  const visitedF = new Set<string>()
-  const visitedB = new Set<string>()
-  const frontierF = new MinHeap<string>()
-  const frontierB = new MinHeap<string>()
-  const exploredEdges: Array<[string, string]> = []
-
-  distF.set(start, 0)
-  distB.set(end, 0)
-  frontierF.push(start, 0)
-  frontierB.push(end, 0)
-
-  const frontierSetF = new Set<string>([start])
-  const frontierSetB = new Set<string>([end])
-  let explored = 0
-  let meetingNode: string | null = null
-  let bestDist = Number.POSITIVE_INFINITY
-
-  while (!frontierF.isEmpty() && !frontierB.isEmpty()) {
-    if (signal?.aborted) return
-
-    // Forward step
-    const currentF = frontierF.pop()!
-    frontierSetF.delete(currentF)
-
-    if (!visitedF.has(currentF)) {
-      visitedF.add(currentF)
-      explored++
-
-      if (visitedB.has(currentF)) {
-        const totalDist = (distF.get(currentF) || 0) + (distB.get(currentF) || 0)
-        if (totalDist < bestDist) {
-          bestDist = totalDist
-          meetingNode = currentF
+  while (sides.every((s) => s.heap.size > 0) && sides[0].heap.peekPriority() + sides[1].heap.peekPriority() < best) {
+    sides.forEach((side, i) => {
+      const other = sides[1 - i]
+      const current = side.heap.pop()
+      if (current === undefined || side.done.has(current)) return
+      side.done.add(current)
+      for (const { to, weight } of graph.adjacency.get(current) ?? []) {
+        const next = side.cost.get(current)! + weight
+        if (next < (side.cost.get(to) ?? Infinity)) {
+          side.cost.set(to, next)
+          side.cameFrom.set(to, current)
+          side.heap.push(to, next)
+          edges.push([current, to])
+        }
+        const total = side.cost.get(to)! + (other.cost.get(to) ?? Infinity)
+        if (total < best) {
+          best = total
+          meeting = to
         }
       }
-
-      const edges = graph.adjacency.get(currentF) || []
-      for (const edge of edges) {
-        if (!visitedF.has(edge.to)) {
-          const newDist = (distF.get(currentF) ?? Number.POSITIVE_INFINITY) + edge.weight
-          if (newDist < (distF.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
-            distF.set(edge.to, newDist)
-            cameFromF.set(edge.to, currentF)
-            frontierF.push(edge.to, newDist)
-            frontierSetF.add(edge.to)
-
-            exploredEdges.push([currentF, edge.to])
-          }
-        }
-      }
-    }
-
-    // Backward step
-    const currentB = frontierB.pop()!
-    frontierSetB.delete(currentB)
-
-    if (!visitedB.has(currentB)) {
-      visitedB.add(currentB)
-      explored++
-
-      if (visitedF.has(currentB)) {
-        const totalDist = (distF.get(currentB) || 0) + (distB.get(currentB) || 0)
-        if (totalDist < bestDist) {
-          bestDist = totalDist
-          meetingNode = currentB
-        }
-      }
-
-      const edges = graph.adjacency.get(currentB) || []
-      for (const edge of edges) {
-        if (!visitedB.has(edge.to)) {
-          const newDist = (distB.get(currentB) ?? Number.POSITIVE_INFINITY) + edge.weight
-          if (newDist < (distB.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
-            distB.set(edge.to, newDist)
-            cameFromB.set(edge.to, currentB)
-            frontierB.push(edge.to, newDist)
-            frontierSetB.add(edge.to)
-
-            exploredEdges.push([currentB, edge.to])
-          }
-        }
-      }
-    }
-
-    const speed = getSpeed()
-    const batchSize = speed > 100 ? Math.floor((speed - 100) / 2) + 1 : 1
-    const delay = speed <= 100 ? Math.max(1, 100 - speed) : 1
-
-    if (explored % batchSize === 0) {
-      const allVisited = new Set([...visitedF, ...visitedB])
-      const allFrontier = new Set([...frontierSetF, ...frontierSetB])
-      onUpdate({ visited: allVisited, frontier: allFrontier, path: [], exploredEdges: [...exploredEdges] })
-      onStats({ nodesExplored: explored, pathLength: 0 })
-
-      await sleep(delay)
-    }
-
-    // Check termination
-    if (meetingNode && bestDist < Number.POSITIVE_INFINITY) {
-      const topF = distF.get(currentF) || Number.POSITIVE_INFINITY
-      const topB = distB.get(currentB) || Number.POSITIVE_INFINITY
-      if (topF + topB >= bestDist) {
-        break
-      }
-    }
-  }
-
-  if (meetingNode) {
-    const pathF = reconstructPath(cameFromF, meetingNode)
-    const pathB = reconstructPath(cameFromB, meetingNode)
-    pathB.reverse()
-    const fullPath = [...pathF, ...pathB.slice(1)]
-    const pathLength = calculatePathLength(graph, fullPath)
-
-    onUpdate({
-      visited: new Set([...visitedF, ...visitedB]),
-      frontier: new Set(),
-      path: fullPath,
-      exploredEdges: [...exploredEdges],
     })
-    onStats({ nodesExplored: explored, pathLength })
   }
+
+  const explored = sides[0].done.size + sides[1].done.size
+  if (!meeting) return { edges, path: [], explored, length: 0 }
+  const path = [...reconstructPath(sides[0].cameFrom, meeting), ...reconstructPath(sides[1].cameFrom, meeting).reverse().slice(1)]
+  return { edges, path, explored, length: best }
 }
 
-async function sstar(
-  graph: Graph,
-  start: string,
-  end: string,
-  getSpeed: () => number,
-  onUpdate: (state: AnimationState) => void,
-  onStats: (stats: Stats) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  const gScore = new Map<string, number>()
-  const fScore = new Map<string, number>()
-  const cameFrom = new Map<string, string>()
-  const visited = new Set<string>()
-  const frontier = new MinHeap<string>()
-  const exploredEdges: Array<[string, string]> = []
+export function findPath(graph: Graph, start: string, end: string, algorithm: Algorithm): SearchResult {
+  if (start === end) return { edges: [], path: [start], explored: 1, length: 0 }
 
-  // Memory bound - cost threshold
-  const costThreshold = heuristic(graph, start, end) * 2
-
-  gScore.set(start, 0)
-  fScore.set(start, heuristic(graph, start, end))
-  frontier.push(start, fScore.get(start)!)
-
-  const frontierSet = new Set<string>([start])
-  let explored = 0
-
-  while (!frontier.isEmpty()) {
-    if (signal?.aborted) return
-
-    const current = frontier.pop()!
-    frontierSet.delete(current)
-
-    if (visited.has(current)) continue
-
-    // S* pruning - skip if over threshold
-    if ((fScore.get(current) ?? Number.POSITIVE_INFINITY) > costThreshold) continue
-
-    visited.add(current)
-    explored++
-
-    if (current === end) {
-      const path = reconstructPath(cameFrom, end)
-      const pathLength = calculatePathLength(graph, path)
-      onUpdate({ visited: new Set(visited), frontier: new Set(), path, exploredEdges: [...exploredEdges] })
-      onStats({ nodesExplored: explored, pathLength })
-      return
-    }
-
-    const edges = graph.adjacency.get(current) || []
-    for (const edge of edges) {
-      if (visited.has(edge.to)) continue
-
-      const tentativeG = (gScore.get(current) ?? Number.POSITIVE_INFINITY) + edge.weight
-      const newF = tentativeG + heuristic(graph, edge.to, end)
-
-      // Prune if exceeds threshold
-      if (newF > costThreshold) continue
-
-      if (tentativeG < (gScore.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
-        cameFrom.set(edge.to, current)
-        gScore.set(edge.to, tentativeG)
-        fScore.set(edge.to, newF)
-        frontier.push(edge.to, newF)
-        frontierSet.add(edge.to)
-
-        exploredEdges.push([current, edge.to])
-      }
-    }
-
-    const speed = getSpeed()
-    const batchSize = speed > 100 ? Math.floor((speed - 100) / 2) + 1 : 1
-    const delay = speed <= 100 ? Math.max(1, 100 - speed) : 1
-
-    if (explored % batchSize === 0) {
-      onUpdate({
-        visited: new Set(visited),
-        frontier: new Set(frontierSet),
-        path: [],
-        exploredEdges: [...exploredEdges],
-      })
-      onStats({ nodesExplored: explored, pathLength: 0 })
-
-      await sleep(delay)
-    }
-  }
-}
-
-export async function runPathfinding(
-  graph: Graph,
-  start: string,
-  end: string,
-  algorithm: Algorithm,
-  getSpeed: () => number,
-  onUpdate: (state: AnimationState) => void,
-  onStats: (stats: Stats) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  const strategies: Record<Algorithm, typeof dijkstra> = {
-    dijkstra,
-    astar,
-    bidirectional,
-    sstar,
+  const goal = graph.nodes.get(end)!
+  const straightLine = (id: string) => {
+    const node = graph.nodes.get(id)!
+    return haversineDistance(node.lat, node.lng, goal.lat, goal.lng)
   }
 
-  const strategy = strategies[algorithm]
-  if (strategy) {
-    await strategy(graph, start, end, getSpeed, onUpdate, onStats, signal)
+  switch (algorithm) {
+    case "dijkstra":
+      return bestFirst(graph, start, end, () => 0)
+    case "astar":
+      return bestFirst(graph, start, end, straightLine)
+    case "sstar":
+      return bestFirst(graph, start, end, straightLine, straightLine(start) * 2)
+    case "bidirectional":
+      return bidirectional(graph, start, end)
   }
 }

@@ -2,15 +2,17 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
-import Script from "next/script"
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Pathfinding Visualization Algorithm",
-  description: "Interactive pathfinding visualization on real map data",
+  metadataBase: new URL("https://geospatial-algorithm-lab.vercel.app"),
+  title: "Geospatial Algorithm Lab",
+  description: "Watch Dijkstra, A*, bidirectional and S* search real city streets, animated on a live map.",
+  openGraph: { type: "website", siteName: "Geospatial Algorithm Lab" },
+  twitter: { card: "summary_large_image" },
   icons: {
     icon: [
       {
@@ -49,21 +51,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossOrigin=""
-        />
-      </head>
       <body className={`font-sans antialiased`}>
-        <Script
-          src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-          crossOrigin=""
-          strategy="beforeInteractive"
-        />
         {children}
         <Analytics />
       </body>
