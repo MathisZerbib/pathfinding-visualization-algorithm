@@ -1,19 +1,20 @@
 import { create } from "zustand"
 import type { Graph } from "./osm-fetcher"
+import type { SearchResult } from "./pathfinding"
 
 export type Algorithm = "dijkstra" | "astar" | "bidirectional" | "sstar"
 
-interface AnimationState {
-  visited: Set<string>
-  frontier: Set<string>
-  path: string[]
-  exploredEdges: Array<[string, string]>
-}
+export const ALGORITHMS: { id: Algorithm; name: string; short: string }[] = [
+  { id: "dijkstra", name: "Dijkstra", short: "Dijkstra" },
+  { id: "astar", name: "A*", short: "A*" },
+  { id: "bidirectional", name: "Bidirectional", short: "Bi-dir" },
+  { id: "sstar", name: "S* bounded", short: "S*" },
+]
 
 interface Stats {
-  nodesInGraph: number
   nodesExplored: number
   pathLength: number
+  computeMs: number | null
 }
 
 interface AppState {
@@ -35,8 +36,8 @@ interface AppState {
   animationSpeed: number
   setAnimationSpeed: (speed: number) => void
 
-  animationState: AnimationState
-  setAnimationState: (state: AnimationState) => void
+  search: SearchResult | null
+  setSearch: (search: SearchResult | null) => void
 
   stats: Stats
   setStats: (stats: Partial<Stats>) => void
@@ -71,12 +72,12 @@ export const useAppStore = create<AppState>((set) => ({
   setAlgorithm: (algo) => set({ algorithm: algo }),
 
   animationSpeed: 50,
-  setAnimationSpeed: (speed) => set({ animationSpeed: speed}),
+  setAnimationSpeed: (speed) => set({ animationSpeed: speed }),
 
-  animationState: { visited: new Set(), frontier: new Set(), path: [], exploredEdges: [] },
-  setAnimationState: (state) => set({ animationState: state }),
+  search: null,
+  setSearch: (search) => set({ search }),
 
-  stats: { nodesInGraph: 0, nodesExplored: 0, pathLength: 0 },
+  stats: { nodesExplored: 0, pathLength: 0, computeMs: null },
   setStats: (stats) => set((state) => ({ stats: { ...state.stats, ...stats } })),
 
   isLoading: false,
